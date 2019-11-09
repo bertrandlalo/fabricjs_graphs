@@ -9,6 +9,50 @@
     pre {
       margin-left: 15px !important
     }
+
+    body {
+      font-family: Helvetica;
+    }
+
+    .flex-row {
+      display: flex;
+      flex-wrap: nowrap;
+      /*max-width: 800px;*/
+    }
+
+    .flex-row .canvas-holder {
+      flex: 1 0 400px;
+      border: 2px solid red;
+      min-width: 0;
+    }
+
+    .flex-row .properties {
+      flex: 0 0 240px;
+      padding: 16px;
+    }
+
+    .flex-row .properties .title {
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      color: #666;
+      font-size: 80%;
+      font-weight: bold;
+    }
+
+    .form-group input {
+      display: block;
+    }
+
+
   </style>
   <script src="assets/js/fabric.js"></script>
 </head>
@@ -19,401 +63,499 @@
 <div id="bd-wrapper">
   <h2>Fabric Nodes Tests</h2>
 
-  <canvas id="c" width="600" height="500"></canvas>
+  <div class="flex-row">
+    <div class="canvas-holder">
+      <canvas id="node-canvas" width="400" height="400"></canvas>
+    </div>
+    <div class="properties">
+      <div class="title">Properties</div>
+      <div class="form-group">
+        <label>Node Id</label>
+        <input type="text" name="node_id">
+      </div>
+      <div class="form-group">
+        <label>Caption</label>
+        <input type="text" name="caption">
+      </div>
+      <div class="form-group">
+        <label>Fill</label>
+        <input type="text" name="fill">
+      </div>
+
+    </div>
+  </div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 
   <script id="main">(function () {
-      fabric.Object.prototype.transparentCorners = false;
+    fabric.Object.prototype.transparentCorners = false;
 
-      var canvas = this.__canvas = new fabric.Canvas('c', {
-          backgroundColor: '#eee',
-          HOVER_CURSOR: 'pointer'
-      });
+    var canvas = this.__canvas = new fabric.Canvas('node-canvas', {
+      backgroundColor: '#eee',
+      HOVER_CURSOR: 'pointer'
+    });
 
-      canvas.selection = false;
+    canvas.selection = false;
 
-      var all_nodes = [];
-
-      fabric.Node = fabric.util.createClass(fabric.Group, {
-          type: 'Node',
-
-          initialize: function (options) {
-
-              this.width = options.width;
-              this.height = options.height;
-
-              $.extend(options,
-                  {
-                      originX: 'left',
-                      originY: 'top',
-                      subTargetCheck: true,
-                      lockUniScaling: true,
-                      hasRotatingPoint: false,
-                      hoverCursor: 'default',
-                      cornerSize: 4,
+    var all_nodes = [];
 
 
-                  });
+    fabric.Node = fabric.util.createClass(fabric.Group, {
+      type: 'Node',
 
-              this.callSuper('initialize', [], options);
+      initialize: function (options) {
 
-              this.set('customAttribute', options.customAttribute || 'undefinedCustomAttribute');
+        this.width = options.width;
+        this.height = options.height;
 
-              this.body = new fabric.Rect({
-                  name: 'body',
+        $.extend(options,
+                {
                   originX: 'left',
                   originY: 'top',
-                  top: 0,
-                  left: 0,
-                  width: 150,
-                  height: 150,
-                  // top: -this.height / 2,
-                  // left: -this.width / 2,
-                  // width: this.width,
-                  // height: this.height,
-                  rx: 4,
-                  ry: 4,
-                  fill: options.fill || "#ddd",
-                  stroke: '#444',
-                  fillRule: "nonzero",
-                  shadow: {color: 'rgba(0,0,0,0.3)', offsetX: 5, offsetY: 5, blur: 5}
+                  subTargetCheck: true,
+                  lockScalingX: true,
+                  lockScalingY: true,
+                  // lockUniScaling: true,
+                  hasRotatingPoint: false,
+                  hoverCursor: 'default',
+                  cornerSize: 0,
+                });
+
+        this.callSuper('initialize', [], options);
+
+        this.set('customAttribute', options.customAttribute || 'undefinedCustomAttribute');
+
+        this.body = new fabric.Rect({
+          name: 'body',
+          originX: 'left',
+          originY: 'top',
+          top: 0,
+          left: 0,
+          width: 150,
+          height: 150,
+          // top: -this.height / 2,
+          // left: -this.width / 2,
+          // width: this.width,
+          // height: this.height,
+          rx: 4,
+          ry: 4,
+          fill: options.fill || "#ddd",
+          stroke: '#444',
+          fillRule: "nonzero",
+          shadow: {color: 'rgba(0,0,0,0.3)', offsetX: 5, offsetY: 5, blur: 5}
+        });
+        // this._objects.push(this.body);
+
+        // this.body.on('mouse:over', function(e) {
+        //     // e.target should be the circle
+        //     console.log(e.target);
+        // });
+        this.add(this.body);
+
+        this.caption_object = new fabric.Text(options.caption, {
+          originX: 'center',
+          originY: 'center',
+          fontFamily: 'Arial',
+          fontSize: 18,
+          fontStyle: 'bold',
+          top: this.body.height / 3,
+          left: this.body.width / 2,
+          fill: 'red',
+          stroke: null
+        });
+
+        this.add(this.caption_object);
+
+        // this.getCoords();
+        // this.addWithUpdate();
+
+        this.hooks = [];
+        this._hooks_by_id = {};
+
+
+        this.define_hooks(options.hooks_data || []);
+        console.log(this._objects);
+
+        this.addWithUpdate();
+        console.log(this._objects);
+
+        // event handlers
+
+        this.on('selected', function (options) {
+          // if (this.body.containsPoint(options.e))
+          //     console.log('AAAAA');
+          // console.log(e.target.top, e.target.left);
+          // this.body.set('fill', '#fff');
+          console.log('selected');
+
+
+          var event = new CustomEvent('nodes.selected', {
+            detail: {
+              node: this,
+              id: this.id,
+              caption: this.caption,
+              fill: this.body.fill
+            }
+          });
+          document.dispatchEvent(event);
+
+        });
+
+        this.on('deselected', function (options) {
+          // if (this.body.containsPoint(options.e))
+          //     console.log('AAAAA');
+          // console.log(e.target.top, e.target.left);
+          // this.body.set('fill', '#ddd');
+          console.log('deselected');
+        });
+
+        this.on('moved', function (options) {
+          // if (this.body.containsPoint(options.e))
+          //     console.log('AAAAA');
+          // console.log(e.target.top, e.target.left);
+          console.log('moved');
+        });
+
+        this.on('mousedown', this.node_mouse_down);
+
+
+        // this.set('dirty', true);
+        this.setCoords();
+        //
+        this.setShadow({color: 'rgba(255,255,255,0.3)'});
+
+        this.connect = function (hook_id, to_node) {
+          var hook = this.getHookById(hook_id);
+          hook.to_node = to_node;
+        };
+
+      },
+
+
+      get_hook_center: function (hook_arg) {
+        // Get center point, in absolute coords, of hook bullet.
+        // hook_arg may be a hook or a hook_id
+
+        var hook, bullet_center, radius, node_center;
+        if (typeof hook_arg == "object") {
+          hook = hook_arg;
+        } else {
+          hook = this.getHookById(hook_arg);
+        }
+
+        bullet_center = hook.bullet.getCenterPoint();
+        node_center = this.getCenterPoint();
+        radius = (hook.side == 'left' ? -hook.radius : hook.radius);
+        return {
+          x: node_center.x + bullet_center.x + radius,
+          y: node_center.y + bullet_center.y
+        };
+      },
+
+
+      define_hooks: function (hooks_data) {
+        // this.hooks = hooks;
+        this.max_hooks_positions = {top: 15, left: 15, right: 15, bottom: 15};
+        for (let h = 0; h < hooks_data.length; h++) {
+          this.add_hook(hooks_data[h]);
+        }
+      },
+
+
+      add_hook: function (hook_data) {
+        console.log(this);
+        console.log(hook_data);
+        hook = {
+          side: hook_data.side || 'right',
+          radius: hook_data.radius || 5,
+          caption: hook_data.caption || '',
+          fill: hook_data.fill || '#444',
+          out: hook_data.out || true,
+        };
+
+        if (hook.side == 'right') {
+          hook.x = this.body.left + this.body.width;
+          hook.y = this.body.top + this.max_hooks_positions[hook.side];
+          hook.caption_x = hook.x - 12;
+          hook.caption_y = hook.y;
+        } else if (hook.side == 'left') {
+          hook.x = this.body.left ;
+          hook.y = this.body.top + this.max_hooks_positions[hook.side]; // -this.body.height / 2 + this.max_hooks_positions[hook.side];
+          hook.caption_x = hook.x + 12;
+          hook.caption_y = hook.y;
+        }
+        // if (hook.side == 'right') {
+        //     hook.x = this.body.width / 2;
+        //     hook.y = -this.body.height / 2 + this.max_hooks_positions[hook.side];
+        //     hook.caption_x = hook.x - 12;
+        //     hook.caption_y = hook.y;
+        // } else if (hook.side == 'left') {
+        //     hook.x = -this.body.width / 2;
+        //     hook.y = -this.body.height / 2 + this.max_hooks_positions[hook.side];
+        //     hook.caption_x = hook.x + 12;
+        //     hook.caption_y = hook.y;
+        // }
+        // Will see later
+        // else if (hook.side == 'top') {
+        //     hook.y = -this.height/2 + hook.radius;
+        //     hook.x = -this.width / 2 + this.max_hooks_positions[hook.side];
+        // }
+        // else if (hook.side == 'bottom') {
+        //     hook.y = this.height/2 + hook.radius;
+        //     hook.x = -this.width / 2 + this.max_hooks_positions[hook.side];
+        // }
+        else {
+          throw "Hook side is erroneous: " + hook.side;
+        }
+
+        this.max_hooks_positions[hook.side] += 15;
+
+        hook.bullet = new fabric.Circle({
+          node: this,
+          name: 'bullet',
+          type: 'hook-bullet',
+          hook: hook,
+          originX: 'center',
+          originY: 'center',
+          top: hook.y,
+          left: hook.x,
+          radius: hook.radius,
+          fill: hook.fill,
+          hoverCursor: 'pointer',
+          stroke: '#222',
+          strokeWidth: 1
+        });
+
+        // hook.bullet.setCoords();            // Don't know why, but without this, bullet.oCoords is null and fails in containtsPoint()
+        // this._objects.push(hook.bullet);
+
+        var text = new fabric.Text(hook.caption, {
+          name: 'hook-caption',
+          type: 'hook-caption',
+          fontFamily: 'Arial', fontSize: 10, fill: '#222', fontStyle: 'normal',
+          originX: 'center', originY: 'center',
+          top: hook.caption_y, left: hook.caption_x,
+          width: 20, height: 20
+        });
+
+        // this._objects.push(text);
+        this.add(text);
+        text.setCoords();
+
+        this.add(hook.bullet);
+        hook.bullet.setCoords();
+
+        this.addWithUpdate();
+        this.setCoords();
+
+        this._hooks_by_id[hook_data.id] = hook;
+        this.hooks.push(hook);
+
+        console.log("add_hook: " + this._objects);
+        console.log(this._hooks_by_id);
+        // canvas.bringToFront(hook.bullet);
+        // this.addWithUpdate();
+
+      },
+
+
+      getHookById: function (hook_id) {
+        if (!this._hooks_by_id.hasOwnProperty(hook_id)) {
+          throw "Node has no hook with id " + hook_id;
+        }
+        return this._hooks_by_id[hook_id];
+      },
+
+
+      draw_links: function () {
+        // Draw all links from hooks of this node
+        var this_node = this;
+        $.each(this.hooks, function (i, hook) {
+          if (hook.out && hook.to_node) {
+            var pt1, pt2;
+            pt1 = this_node.get_hook_center(hook);
+            if (hook.to_node.type == 'end_point') {
+              pt2 = hook.to_node.getCenterPoint();
+            } else {
+              pt2 = hook.to_node.get_hook_center('in');
+            }
+            canvas.remove(hook.path);
+            var svg_path = this_node.make_svg_path(pt1, pt2);
+            var new_path = new fabric.Path(svg_path, {
+              fill: null,
+              stroke: 'green',
+              opacity: 0.5,
+              strokeWidth: 2,
+              selectable: false,
+              hoverCursor: 'default'
+            });
+            hook.path = new_path;
+            canvas.add(new_path);
+            new_path.sendToBack();
+          }
+        });
+      },
+
+
+      node_mouse_down: function (option) {
+        console.log('node_mouse_down' + option.target.caption);
+
+        var target = option.target;
+        if (option.subTargets && option.subTargets.length > 0) {
+          var inner_target = option.subTargets[0];
+          if (inner_target.type == 'hook-bullet') {
+            var hook_bullet = inner_target;
+            var hook = hook_bullet.hook;
+            var end_point;
+
+            if (hook.to_node && hook.to_node.type == 'end_point') {
+              // Node already attached to 'floating' endpoint: remove it
+              canvas.remove(hook.path);
+              canvas.remove(hook.to_node);
+              hook.path = null;
+              hook.to_node = null;
+            }
+            else {
+              // Create a new endpoint
+
+              var pt1 = this.get_hook_center(hook);
+
+              end_point = new fabric.Circle({
+                type: 'end_point',
+                name: 'end_point',
+                originX: 'center',
+                originY: 'center',
+                top: pt1.y + 5,
+                left: pt1.x + 25,
+                radius: 5,
+                fill: 'grey',
+                hasControls: false,
+                hasBorders: false,
+                from_hook: hook,
+                from_node: target,
+                hoverCursor: 'default',
+
+                // stroke: 'red',
+                // strokeWidth: 2
               });
-              // this._objects.push(this.body);
 
-              // this.body.on('mouse:over', function(e) {
-              //     // e.target should be the circle
-              //     console.log(e.target);
-              // });
-              this.add(this.body);
-
-              // this.getCoords();
-              // this.addWithUpdate();
-
-              this.hooks = [];
-              this._hooks_by_id = {};
+              canvas.add(end_point);
+              hook.to_node = end_point;
+              draw_all_links();
+            }
+          }
+        }
+      },
 
 
-              this.define_hooks(options.hooks_data || []);
-              console.log(this._objects);
+      make_svg_path: function (pt1, pt2) {
+        var v = 0, d = 0, min_d, max_d, xd, yd, svg_path;
 
-              this.addWithUpdate();
-              console.log(this._objects);
+        xd = Math.abs(pt2.x - pt1.x);
+        yd = Math.abs(pt2.y - pt1.y);
 
-              // event handlers
+        d = xd * 0.8;
 
-              this.on('selected', function (options) {
-                  // if (this.body.containsPoint(options.e))
-                  //     console.log('AAAAA');
-                  // console.log(e.target.top, e.target.left);
-                  this.body.set('fill', '#fff');
-                  console.log('selected');
-              });
+        min_d = xd + yd;
+        max_d = 100;
 
-              this.on('deselected', function (options) {
-                  // if (this.body.containsPoint(options.e))
-                  //     console.log('AAAAA');
-                  // console.log(e.target.top, e.target.left);
-                  this.body.set('fill', '#ddd');
-                  console.log('deselected');
-              });
+        d = Math.min(Math.max(d, min_d), max_d);
 
-              this.on('moved', function (options) {
-                  // if (this.body.containsPoint(options.e))
-                  //     console.log('AAAAA');
-                  // console.log(e.target.top, e.target.left);
-                  console.log('moved');
-              });
+        // if endpoint is almost on same vertical position as startpoint, then tweak points so that path is not flat
+        if (pt2.x < pt1.x &&  Math.abs(pt2.y - pt1.y) < 30) {
+          v = (30 - Math.abs(pt2.y - pt1.y)) * (pt2.y > pt1.y ? -1 : -1);
+        }
 
-              this.on('mousedown', this.node_mouse_down);
+        svg_path = 'M ' + pt1.x + ' ' + pt1.y
+                + ' C ' + (pt1.x + d) + ' ' + (pt1.y + v) + ' ' + (pt2.x - d) + ' ' + (pt2.y + v) + ' ' + pt2.x + ' ' + pt2.y;
+
+        // console.log(svg_path);
+        return svg_path;
+      },
 
 
-              // this.set('dirty', true);
-              this.setCoords();
-              //
-              this.setShadow({color: 'rgba(255,255,255,0.3)'});
-
-              this.connect = function (hook_id, to_node) {
-                  var hook = this.getHookById(hook_id);
-                  hook.to_node = to_node;
-              };
-
-          },
+      toObject: function () {
+        return fabric.util.object.extend(this.callSuper('toObject'), {
+          customAttribute: this.get('customAttribute')
+        });
+      },
 
 
-          get_hook_center: function (hook_arg) {
-              // Get center point, in absolute coords, of hook bullet.
-              // hook_arg may be a hook or a hook_id
-
-              var hook, bullet_center, radius, node_center;
-              if (typeof hook_arg == "object") {
-                  hook = hook_arg;
-              } else {
-                  hook = this.getHookById(hook_arg);
-              }
-
-              bullet_center = hook.bullet.getCenterPoint();
-              node_center = this.getCenterPoint();
-              radius = (hook.side == 'left' ? -hook.radius : hook.radius);
-              return {
-                  x: node_center.x + bullet_center.x + radius,
-                  y: node_center.y + bullet_center.y
-              };
-          },
+      setFill: function(fill) {
+        this.body.set('fill', fill);
+      }
 
 
-          define_hooks: function (hooks_data) {
-              // this.hooks = hooks;
-              this.max_hooks_positions = {top: 15, left: 15, right: 15, bottom: 15};
-              for (let h = 0; h < hooks_data.length; h++) {
-                  this.add_hook(hooks_data[h]);
-              }
-          },
+    });
 
 
-          add_hook: function (hook_data) {
-              console.log(this);
-              console.log(hook_data);
-              hook = {
-                  side: hook_data.side || 'right',
-                  radius: hook_data.radius || 5,
-                  caption: hook_data.caption || '',
-                  fill: hook_data.fill || '#444',
-                  out: hook_data.out || true,
-              };
+    function resize_canvas(ev) {
+      var canvas_holder = canvas.upperCanvasEl.closest('.canvas-holder');
 
-              if (hook.side == 'right') {
-                  hook.x = this.body.left + this.body.width;
-                  hook.y = this.body.top + this.max_hooks_positions[hook.side];
-                  hook.caption_x = hook.x - 12;
-                  hook.caption_y = hook.y;
-              } else if (hook.side == 'left') {
-                  hook.x = this.body.left ;
-                  hook.y = this.body.top + this.max_hooks_positions[hook.side]; // -this.body.height / 2 + this.max_hooks_positions[hook.side];
-                  hook.caption_x = hook.x + 12;
-                  hook.caption_y = hook.y;
-              }
-              // if (hook.side == 'right') {
-              //     hook.x = this.body.width / 2;
-              //     hook.y = -this.body.height / 2 + this.max_hooks_positions[hook.side];
-              //     hook.caption_x = hook.x - 12;
-              //     hook.caption_y = hook.y;
-              // } else if (hook.side == 'left') {
-              //     hook.x = -this.body.width / 2;
-              //     hook.y = -this.body.height / 2 + this.max_hooks_positions[hook.side];
-              //     hook.caption_x = hook.x + 12;
-              //     hook.caption_y = hook.y;
-              // }
-              // Will see later
-              // else if (hook.side == 'top') {
-              //     hook.y = -this.height/2 + hook.radius;
-              //     hook.x = -this.width / 2 + this.max_hooks_positions[hook.side];
-              // }
-              // else if (hook.side == 'bottom') {
-              //     hook.y = this.height/2 + hook.radius;
-              //     hook.x = -this.width / 2 + this.max_hooks_positions[hook.side];
-              // }
-              else {
-                  throw "Hook side is erroneous: " + hook.side;
-              }
+      canvas.setWidth(canvas_holder.clientWidth);
+      canvas.setHeight(canvas_holder.clientHeight);
+    }
 
-              this.max_hooks_positions[hook.side] += 15;
-
-              hook.bullet = new fabric.Circle({
-                  node: this,
-                  name: 'bullet',
-                  type: 'hook-bullet',
-                  hook: hook,
-                  originX: 'center',
-                  originY: 'center',
-                  top: hook.y,
-                  left: hook.x,
-                  radius: hook.radius,
-                  fill: hook.fill,
-                  hoverCursor: 'pointer',
-                  stroke: '#222',
-                  strokeWidth: 1
-              });
-
-              // hook.bullet.setCoords();            // Don't know why, but without this, bullet.oCoords is null and fails in containtsPoint()
-              // this._objects.push(hook.bullet);
-
-              var text = new fabric.Text(hook.caption, {
-                  name: 'hook-caption',
-                  type: 'hook-caption',
-                  fontFamily: 'Arial', fontSize: 10, fill: '#222', fontStyle: 'normal',
-                  originX: 'center', originY: 'center',
-                  top: hook.caption_y, left: hook.caption_x,
-                  width: 20, height: 20
-              });
-
-              // this._objects.push(text);
-              this.add(text);
-              text.setCoords();
-
-              this.add(hook.bullet);
-              hook.bullet.setCoords();
-
-              this.addWithUpdate();
-              this.setCoords();
-
-              this._hooks_by_id[hook_data.id] = hook;
-              this.hooks.push(hook);
-
-              console.log("add_hook: " + this._objects);
-              console.log(this._hooks_by_id);
-              // canvas.bringToFront(hook.bullet);
-              // this.addWithUpdate();
-
-          },
+    window.addEventListener('resize', resize_canvas);
+    resize_canvas();
 
 
-          getHookById: function (hook_id) {
-              if (!this._hooks_by_id.hasOwnProperty(hook_id)) {
-                  throw "Node has no hook with id " + hook_id;
-              }
-              return this._hooks_by_id[hook_id];
-          },
 
+    var nn1 = new fabric.Node({
+      caption: '#34',
+      text: 'De quelle couleur sont les tomates ?',
+      top: 150,
+      left: 150,
+      fill: '#eee',
+      hooks_data: [
+        {
+          "id": "in",
+          "caption": "in",
+          "type": "question-in",
+          "in": true,
+          "out": false,
+          "side": "left",
+          "align": "top",
+          "fill": "#888",
+          "size": 6
+        },
+        {
+          "id": "A",
+          "caption": "A",
+          "type": "question-out",
+          "in": false,
+          "out": true,
+          "side": "right",
+          "align": "top",
+          "fill": "#ddd",
+          "size": 5
+        },
+        {
+          "id": "B",
+          "caption": "B",
+          "type": "question-out",
+          "in": false,
+          "out": true,
+          "side": "right",
+          "align": "top",
+          "fill": "#ddd",
+          "size": 5
+        },
+        {
+          "id": "C",
+          "caption": "C",
+          "type": "question-out",
+          "in": false,
+          "out": true,
+          "side": "right",
+          "align": "top",
+          "fill": "#ddd",
+          "size": 5
+        }
+      ]
+    });
 
-          draw_links: function () {
-              // Draw all links from hooks of this node
-              var this_node = this;
-              $.each(this.hooks, function (i, hook) {
-                  if (hook.out && hook.to_node) {
-                      var pt1, pt2;
-                      pt1 = this_node.get_hook_center(hook);
-                      if (hook.to_node.type == 'end_point') {
-                          pt2 = hook.to_node.getCenterPoint();
-                      } else {
-                          pt2 = hook.to_node.get_hook_center('in');
-                      }
-                      canvas.remove(hook.path);
-                      var svg_path = this_node.make_svg_path(pt1, pt2);
-                      var new_path = new fabric.Path(svg_path, {
-                          fill: null,
-                          stroke: 'green',
-                          opacity: 0.5,
-                          strokeWidth: 2,
-                          selectable: false,
-                          hoverCursor: 'default'
-                      });
-                      hook.path = new_path;
-                      canvas.add(new_path);
-                      new_path.sendToBack();
-                  }
-              });
-          },
-
-
-          node_mouse_down: function (option) {
-              console.log('node_mouse_down' + option.target.caption);
-
-              var target = option.target;
-              if (option.subTargets && option.subTargets.length > 0) {
-                  var inner_target = option.subTargets[0];
-                  if (inner_target.type == 'hook-bullet') {
-                      var hook_bullet = inner_target;
-                      var hook = hook_bullet.hook;
-                      var pt1 = this.get_hook_center(hook);
-
-                      var end_point = new fabric.Circle({
-                          type: 'end_point',
-                          name: 'end_point',
-                          originX: 'center',
-                          originY: 'center',
-                          top: pt1.y + 5,
-                          left: pt1.x + 25,
-                          radius: 5,
-                          fill: 'grey',
-                          hasControls: false,
-                          hasBorders: false,
-                          from_hook: hook,
-                          from_node: target,
-                          hoverCursor: 'default',
-
-                          // stroke: 'red',
-                          // strokeWidth: 2
-                      });
-
-                      canvas.add(end_point);
-                      hook.to_node = end_point;
-                      draw_all_links();
-                  }
-              }
-          },
-
-
-          make_svg_path: function (pt1, pt2) {
-              var d = Math.max(Math.abs(pt2.x - pt1.x) * 0.8, 20);
-              var svg_path = 'M ' + pt1.x + ' ' + pt1.y + ' C ' + (pt1.x + d) + ' ' + pt1.y + ' ' + (pt2.x - d) + ' ' + pt2.y + ' ' + pt2.x + ' ' + pt2.y;
-              return svg_path;
-          },
-
-
-          toObject: function () {
-              return fabric.util.object.extend(this.callSuper('toObject'), {
-                  customAttribute: this.get('customAttribute')
-              });
-          },
-
-
-      });
-
-
-      var nn1 = new fabric.Node({
-          caption: '#34',
-          text: 'De quelle couleur sont les tomates ?',
-          top: 150,
-          left: 150,
-          hooks_data: [
-              {
-                  "id": "in",
-                  "caption": "in",
-                  "type": "question-in",
-                  "in": true,
-                  "out": false,
-                  "side": "left",
-                  "align": "top",
-                  "fill": "#888",
-                  "size": 6
-              },
-              {
-                  "id": "A",
-                  "caption": "A",
-                  "type": "question-out",
-                  "in": false,
-                  "out": true,
-                  "side": "right",
-                  "align": "top",
-                  "fill": "#ddd",
-                  "size": 5
-              },
-              {
-                  "id": "B",
-                  "caption": "B",
-                  "type": "question-out",
-                  "in": false,
-                  "out": true,
-                  "side": "right",
-                  "align": "top",
-                  "fill": "#ddd",
-                  "size": 5
-              },
-              {
-                  "id": "C",
-                  "caption": "C",
-                  "type": "question-out",
-                  "in": false,
-                  "out": true,
-                  "side": "right",
-                  "align": "top",
-                  "fill": "#ddd",
-                  "size": 5
-              }
-          ]
-      });
-      nn1.add_hook({
+    nn1.add_hook({
               "id": "D",
               "caption": "D",
               "type": "question-out",
@@ -423,9 +565,10 @@
               "align": "top",
               "fill": "rgba(250,250,0,0.5)",
               "size": 5
-          }
-      );
-      nn1.add_hook({
+            }
+    );
+
+    nn1.add_hook({
               "id": "E",
               "caption": "E",
               "type": "question-out",
@@ -435,23 +578,23 @@
               "align": "top",
               "fill": "rgba(250,250,0,0.5)",
               "size": 5
-          }
-      );
+            }
+    );
 
 
-      all_nodes.push(nn1);
-      canvas.add(nn1);
+    all_nodes.push(nn1);
+    canvas.add(nn1);
 
 
-      var nn2 = new fabric.Node({
-          caption: '#38',
-          text: 'De quelle couleur sont les tomates ?',
-          top: 150,
-          left: 250,
-          hooks_data: []
-      });
+    var nn2 = new fabric.Node({
+      caption: '#38',
+      text: 'De quelle couleur sont les tomates ?',
+      top: 150,
+      left: 250,
+      hooks_data: []
+    });
 
-      nn2.add_hook({
+    nn2.add_hook({
               "id": "in",
               "caption": "in",
               "type": "question-out",
@@ -461,9 +604,10 @@
               "align": "top",
               "fill": "rgba(250,250,0,0.5)",
               "size": 5
-          }
-      );
-      nn2.add_hook({
+            }
+    );
+
+    nn2.add_hook({
               "id": "out",
               "caption": "out",
               "type": "question-out",
@@ -473,121 +617,228 @@
               "align": "top",
               "fill": "rgba(250,250,0,0.5)",
               "size": 5
-          }
-      );
-      all_nodes.push(nn2);
-      canvas.add(nn2);
+            }
+    );
 
-      var test_body = new fabric.Rect({
-          name: 'body',
-          originX: 'left',
-          originY: 'top',
-          top: 100,
-          left: 100,
-          width: 50,
-          height: 50,
-          rx: 4,
-          ry: 4,
-          fill: "#ddd",
-          stroke: '#444',
-          fillRule: "nonzero",
-          shadow: {color: 'rgba(0,0,0,0.3)', offsetX: 5, offsetY: 5, blur: 5},
-          corner: 2
-      });
-
-      canvas.add(test_body);
+    all_nodes.push(nn2);
+    canvas.add(nn2);
 
 
-      // nn1.set({top: 50, left: 20});
+    // nn1.set({top: 50, left: 20});
 
 
-      canvas.on('object:moved', function (options) {
-          // console.log('object:moved ' + options.target.type);
-          draw_all_links();
-
-          if (options.target.type == 'end_point') {
-              // check if connection is done
-              var end_point = options.target;
-              var end_point_center = options.target.getCenterPoint();
-              for (var n = 0; n < all_nodes.length; n++) {
-                  var node = all_nodes[n];
-                  var in_hook_center = node.get_hook_center('in');
-                  if (Math.abs(in_hook_center.x - end_point_center.x) < 10 && Math.abs(in_hook_center.y - end_point_center.y) < 10) {
-                      console.log('CONNECT TO ' + node.caption);
-                      var from_node = end_point.from_node;
-                      var from_hook = end_point.from_hook;
-                      from_hook.to_node = node;
-                      canvas.remove(end_point);
-                      break;
-                  }
-              }
-          }
-      });
-
-      canvas.on('object:moving', draw_all_links);
-
-
-      canvas.on('mousedown', function (options) {
-          console.log('mouse:down ' + options.target.type);
-          var coords = options.target.getLocalPointer();
-          var x_abs = coords.x / options.target.scaleX;
-          var y_abs = coords.y / options.target.scaleY;
-          console.log('coordinates ' + x_abs + ', ' + y_abs);
-
-      });
-
-
-      function onMouseDown(options) {
-          console.log('mouseDown ' + options.target.caption);
-
-          if (options.subTargets) {
-              var hook = options.subTargets[0];
-              if (hook.type == 'hook') {
-                  hook.bullet.set('fill', hook.selected ? '#888' : 'red');
-                  hook.selected = !hook.selected;
-                  canvas.renderAll();
-              }
-          }
-
-      }
-
-
-      function draw_all_links() {
-
-          for (var n = 0; n < all_nodes.length; n++) {
-              all_nodes[n].draw_links();
-          }
-
-      }
-
-
-      var bullet_a = nn1.get_hook_center('A');
-      console.log('hook center: ' + bullet_a.x + ', ' + bullet_a.y);
-
-
+    canvas.on('object:moved', function (options) {
+      // console.log('object:moved ' + options.target.type);
       draw_all_links();
 
+      if (options.target.type == 'end_point') {
+        // check if connection is done
+        var end_point = options.target;
+        var end_point_center = options.target.getCenterPoint();
+        for (var n = 0; n < all_nodes.length; n++) {
+          var node = all_nodes[n];
+          var in_hook_center = node.get_hook_center('in');
+          if (Math.abs(in_hook_center.x - end_point_center.x) < 10 && Math.abs(in_hook_center.y - end_point_center.y) < 10) {
+            console.log('CONNECT TO ' + node.caption);
+            var from_node = end_point.from_node;
+            var from_hook = end_point.from_hook;
+            from_hook.to_node = node;
+            canvas.remove(end_point);
+            from_node.draw_links();
+            break;
+          }
+        }
+      }
+    });
+
+    canvas.on('object:moving', draw_all_links);
+
+
+    canvas.on('mousedown', function (options) {
+      console.log('mouse:down ' + options.target.type);
+      var coords = options.target.getLocalPointer();
+      var x_abs = coords.x / options.target.scaleX;
+      var y_abs = coords.y / options.target.scaleY;
+      console.log('coordinates ' + x_abs + ', ' + y_abs);
+
+    });
+
+
+    canvas.on('mouse:wheel', function(opt) {
+      var delta = opt.e.deltaY;
+      var zoom = canvas.getZoom();
+      zoom = zoom + delta / 200;
+      if (zoom > 20) zoom = 20;
+      if (zoom < 0.01) zoom = 0.01;
+      canvas.zoomToPoint({x: opt.e.offsetX, y: opt.e.offsetY}, zoom);
+      opt.e.preventDefault();
+      opt.e.stopPropagation();
+      var vpt = this.viewportTransform;
+      if (zoom < 400 / 1000) {
+        this.viewportTransform[4] = 200 - 1000 * zoom / 2;
+        this.viewportTransform[5] = 200 - 1000 * zoom / 2;
+      }
+      else {
+        if (vpt[4] >= 0) {
+          this.viewportTransform[4] = 0;
+        } else if (vpt[4] < canvas.getWidth() - 1000 * zoom) {
+          this.viewportTransform[4] = canvas.getWidth() - 1000 * zoom;
+        }
+        if (vpt[5] >= 0) {
+          this.viewportTransform[5] = 0;
+        } else if (vpt[5] < canvas.getHeight() - 1000 * zoom) {
+          this.viewportTransform[5] = canvas.getHeight() - 1000 * zoom;
+        }
+      }
+
+      canvas.getObjects().forEach(function (targ) {
+        targ.setCoords();
+      });
+
+      canvas.renderAll();
+    });
+
+
+    // Start drag (pan) on ctrl+click
+    canvas.on('mouse:down', function(opt) {
+      var evt = opt.e;
+      if (evt.ctrlKey === true) {
+        this.isDragging = true;
+        this.selection = false;
+        this.lastPosX = evt.clientX;
+        this.lastPosY = evt.clientY;
+      }
+    });
+
+    // Do drag
+    canvas.on('mouse:move', function(opt) {
+      if (this.isDragging) {
+        var e = opt.e;
+        this.viewportTransform[4] += e.clientX - this.lastPosX;
+        this.viewportTransform[5] += e.clientY - this.lastPosY;
+        this.requestRenderAll();
+        this.lastPosX = e.clientX;
+        this.lastPosY = e.clientY;
+      }
+    });
+
+    // End drag
+    canvas.on('mouse:up', function(opt) {
+      this.isDragging = false;
+      this.selection = true;
+    });
+
+
+
+    function onMouseDown(options) {
+      console.log('mouseDown ' + options.target.caption);
+
+      if (options.subTargets) {
+        var hook = options.subTargets[0];
+        if (hook.type == 'hook') {
+          hook.bullet.set('fill', hook.selected ? '#888' : 'red');
+          hook.selected = !hook.selected;
+          canvas.renderAll();
+        }
+      }
+
+    }
+
+
+    function draw_all_links() {
+
+      for (var n = 0; n < all_nodes.length; n++) {
+        all_nodes[n].draw_links();
+      }
+
+    }
+
+
+    var bullet_a = nn1.get_hook_center('A');
+    console.log('hook center: ' + bullet_a.x + ', ' + bullet_a.y);
+
+    draw_all_links();
+
   })();
+
+
+  document.addEventListener('nodes.selected', function(ev) {
+    console.log('nodes.selected' + ev.detail);
+    if (ev.detail) {
+      var node_properties = ev.detail;
+      var find_prop_divs = document.getElementsByClassName('properties');
+      if (find_prop_divs.length) {
+        var prop_div = find_prop_divs[0];
+        prop_div._node = node_properties.node;
+        var input_id = prop_div.querySelector('input[name=node_id]');
+        var input_caption = prop_div.querySelector('input[name=caption]');
+        var input_fill = prop_div.querySelector('input[name=fill]');
+
+        input_id.value = node_properties.id;
+        input_caption.value = node_properties.caption;
+        input_fill.value = node_properties.fill;
+      }
+    }
+  });
+
+  var find_prop_divs = document.getElementsByClassName('properties');
+  if (find_prop_divs.length) {
+    var prop_div = find_prop_divs[0];
+    prop_div.addEventListener('change', function(ev) {
+      var node = prop_div._node;
+      console.log('node: ' + node);
+      var element = ev.target;
+      if (element.getAttribute('name') == 'fill') {
+        // node.setFill(element.value);
+        node.body.set('fill', element.value);
+        node.dirty = true;
+        node.canvas.requestRenderAll();
+        node.canvas.renderTop();
+      }
+      if (element.getAttribute('name') == 'caption') {
+        // node.setFill(element.value);
+        node.caption_object.set('text', element.value);
+        node.dirty = true;
+        node.canvas.requestRenderAll();
+        node.canvas.renderTop();
+      }
+    });
+  }
+
+  // var find_canvas_holder_divs = document.getElementsByClassName('canvas-holder');
+  // if (find_canvas_holder_divs.length) {
+  //   var canvas_holder = find_canvas_holder_divs[0];
+  //   window.addEventListener('resize', function (ev) {
+  //     var canvas = document.getElementById('node-canvas');
+  //     canvas.width = canvas_holder.clientWidth;
+  //     canvas.height = canvas_holder.clientHeight;
+  //
+  //   });
+  // }
+
+
+
+
   </script>
 
 </div>
 
 
 <script>
-    (function () {
-        fabric.util.addListener(fabric.window, 'load', function () {
-            var canvas = this.__canvas || this.canvas,
-                canvases = this.__canvases || this.canvases;
+  (function () {
+    fabric.util.addListener(fabric.window, 'load', function () {
+      var canvas = this.__canvas || this.canvas,
+              canvases = this.__canvases || this.canvases;
 
-            canvas && canvas.calcOffset && canvas.calcOffset();
+      canvas && canvas.calcOffset && canvas.calcOffset();
 
-            if (canvases && canvases.length) {
-                for (var i = 0, len = canvases.length; i < len; i++) {
-                    canvases[i].calcOffset();
-                }
-            }
-        });
-    })();
+      if (canvases && canvases.length) {
+        for (var i = 0, len = canvases.length; i < len; i++) {
+          canvases[i].calcOffset();
+        }
+      }
+    });
+  })();
 </script>
 
 
