@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+    <meta charset="utf-8">
 
-  <title>XqNode demo</title>
+    <title>XqNode demo</title>
 
-  <style>
-    pre {
-      margin-left: 15px !important
-    }
+    <style>
+        pre {
+            margin-left: 15px !important
+        }
 
     body {
       font-family: Helvetica;
@@ -53,15 +53,15 @@
     }
 
 
-  </style>
-  <script src="assets/js/fabric.js"></script>
+    </style>
+    <script src="assets/js/fabric.js"></script>
 </head>
 <body>
 <!--<script async defer src="https://buttons.github.io/buttons.js"></script>-->
 
 
 <div id="bd-wrapper">
-  <h2>Fabric Nodes Tests</h2>
+    <h2>Fabric Nodes Tests</h2>
 
   <div class="flex-row">
     <div class="canvas-holder">
@@ -85,7 +85,7 @@
     </div>
   </div>
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 
   <script id="main">(function () {
     fabric.Object.prototype.transparentCorners = false;
@@ -97,7 +97,8 @@
 
     canvas.selection = false;
 
-    var all_nodes = [];
+        var all_nodes = {};
+        var all_edges = [];
 
 
     fabric.Node = fabric.util.createClass(fabric.Group, {
@@ -107,7 +108,8 @@
 
         this.width = options.width;
         this.height = options.height;
-
+                this.id = options.id;
+                all_nodes[this.id] = this;
         $.extend(options,
                 {
                   originX: 'left',
@@ -169,6 +171,7 @@
         // this.getCoords();
         // this.addWithUpdate();
 
+                this.hooks_data = [];
         this.hooks = [];
         this._hooks_by_id = {};
 
@@ -263,6 +266,7 @@
 
 
       add_hook: function (hook_data) {
+                this.hooks_data.push(hook_data);
         console.log(this);
         console.log(hook_data);
         hook = {
@@ -271,6 +275,7 @@
           caption: hook_data.caption || '',
           fill: hook_data.fill || '#444',
           out: hook_data.out || true,
+                    id: hook_data.id  //todo: check id unique
         };
 
         if (hook.side == 'right') {
@@ -315,6 +320,7 @@
           name: 'bullet',
           type: 'hook-bullet',
           hook: hook,
+                    hook_id: hook.id,
           originX: 'center',
           originY: 'center',
           top: hook.y,
@@ -418,6 +424,7 @@
             else {
               // Create a new endpoint
 
+                        console.log(hook)
               var pt1 = this.get_hook_center(hook);
 
               end_point = new fabric.Circle({
@@ -474,11 +481,26 @@
       },
 
 
-      toObject: function () {
-        return fabric.util.object.extend(this.callSuper('toObject'), {
-          customAttribute: this.get('customAttribute')
-        });
+            toJSON: function () {
+                return {
+                    id: this.id,
+                    caption: this.caption,
+                    text: this.text,
+                    top: this.top,
+                    left: this.left,
+                    hooks_data: this.hooks_data,
+                }
+                // return fabric.util.object.extend(this.callSuper('toObject'), {
+                //     customAttribute: this.get('customAttribute')
+                // });
       },
+            // Take from here: https://stackoverflow.com/questions/24384804/fabric-js-subclassing-fabric-group-error-cannot-read-property-async-of-und
+            // fromObject: function (object, callback) {
+            //     fabric.util.enlivenObjects(object.objects, function (enlivenedObjects) {
+            //         delete object.objects;
+            //         callback && callback(new fabric.Node(enlivenedObjects, object));
+            //     });
+            // }
 
 
       setFill: function(fill) {
@@ -499,9 +521,16 @@
     window.addEventListener('resize', resize_canvas);
     resize_canvas();
 
+        /* Take from here: https://stackoverflow.com/questions/24384804/fabric-js-subclassing-fabric-group-error-cannot-read-property-async-of-und
+        * Synchronous loaded object
+        */
+        fabric.Node.fromJSON = function (object, callback) {
+            return new fabric.Node(object);
+        };
 
 
     var nn1 = new fabric.Node({
+            id: '#34',
       caption: '#34',
       text: 'De quelle couleur sont les tomates ?',
       top: 150,
@@ -582,11 +611,11 @@
     );
 
 
-    all_nodes.push(nn1);
     canvas.add(nn1);
 
 
     var nn2 = new fabric.Node({
+            id: '#38',
       caption: '#38',
       text: 'De quelle couleur sont les tomates ?',
       top: 150,
@@ -620,7 +649,7 @@
             }
     );
 
-    all_nodes.push(nn2);
+
     canvas.add(nn2);
 
 
@@ -635,8 +664,10 @@
         // check if connection is done
         var end_point = options.target;
         var end_point_center = options.target.getCenterPoint();
-        for (var n = 0; n < all_nodes.length; n++) {
-          var node = all_nodes[n];
+
+
+                for (node_id in all_nodes) {
+                    var node = all_nodes[node_id];
           var in_hook_center = node.get_hook_center('in');
           if (Math.abs(in_hook_center.x - end_point_center.x) < 10 && Math.abs(in_hook_center.y - end_point_center.y) < 10) {
             console.log('CONNECT TO ' + node.caption);
@@ -645,6 +676,21 @@
             from_hook.to_node = node;
             canvas.remove(end_point);
             from_node.draw_links();
+                        console.log(from_hook);
+                        edge = {
+                            'source': {
+                                'node_id': from_node.id,
+                                'hook_id': from_hook.id
+
+                            },
+                            'target': {
+                                'node_id': node.id,
+                                'hook_id': node.getHookById('in').id
+
+                            },
+
+                        };
+                        all_edges.push(edge);
             break;
           }
         }
@@ -652,8 +698,6 @@
     });
 
     canvas.on('object:moving', draw_all_links);
-
-
     canvas.on('mousedown', function (options) {
       console.log('mouse:down ' + options.target.type);
       var coords = options.target.getLocalPointer();
@@ -662,6 +706,8 @@
       console.log('coordinates ' + x_abs + ', ' + y_abs);
 
     });
+
+        canvas.on('mousedown', graph_toObject);
 
 
     canvas.on('mouse:wheel', function(opt) {
@@ -747,19 +793,35 @@
 
     function draw_all_links() {
 
-      for (var n = 0; n < all_nodes.length; n++) {
-        all_nodes[n].draw_links();
+            for (node_id in all_nodes) {
+                all_nodes[node_id].draw_links();
       }
 
     }
 
+        function graph_toObject() {
+            let graph = {
+                    'nodes': all_nodes,
+                    'edges': all_edges
+                }
+            ;
+            console.log(graph)
+        }
 
     var bullet_a = nn1.get_hook_center('A');
     console.log('hook center: ' + bullet_a.x + ', ' + bullet_a.y);
 
     draw_all_links();
 
-  })();
+        nn1JSON = nn1.toJSON();
+        console.log('nn1 to Object: ', nn1JSON);
+        // update id
+        nn1JSON['id'] = nn1JSON['id'] + 'COPY';
+        nn1COPY = fabric.Node.fromJSON(nn1JSON);
+        canvas.add(nn1COPY);
+
+
+    })();
 
 
   document.addEventListener('nodes.selected', function(ev) {
@@ -819,7 +881,8 @@
 
 
 
-  </script>
+
+    </script>
 
 </div>
 
