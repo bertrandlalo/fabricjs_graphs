@@ -16,6 +16,118 @@ class GraphCanvas extends fabric.Canvas {
         super(options);
         this.all_nodes = {};
         this.all_edges = {};
+        //////////////
+        // Custom event listeners
+        //////////////
+        this.on('object:moving', this.draw_all_links);
+        this.on('mousedown', function (options) {
+            console.log('mouse:down ' + options.target.type);
+            var coords = options.target.getLocalPointer();
+            var x_abs = coords.x / options.target.scaleX;
+            var y_abs = coords.y / options.target.scaleY;
+            console.log('coordinates ' + x_abs + ', ' + y_abs);
+        });
+
+
+        // Do drag
+        this.on('mouse:move', function (opt) {
+            if (this.isDragging) {
+                var e = opt.e;
+                this.viewportTransform[4] += e.clientX - this.lastPosX;
+                this.viewportTransform[5] += e.clientY - this.lastPosY;
+                this.requestRenderAll();
+                this.lastPosX = e.clientX;
+                this.lastPosY = e.clientY;
+            }
+        });
+
+        // End drag
+        this.on('mouse:up', function (opt) {
+            this.isDragging = false;
+            this.selection = true;
+
+            this.getObjects().forEach(function (targ) {
+                targ.setCoords();
+            });
+
+            this.renderAll();
+
+        });
+
+        this.on('object:moved', function (options) {
+            // console.log('object:moved ' + options.target.type);
+            this.draw_all_links();
+
+            if (options.target.type == 'end_point') {
+                // check if connection is done
+                var end_point = options.target;
+                var end_point_center = options.target.getCenterPoint();
+
+
+                for (let node_id in this.all_nodes) {
+                    let node = this.all_nodes[node_id];
+                    let in_hook_center = node.get_hook_center('in');
+                    if (Math.abs(in_hook_center.x - end_point_center.x) < 10 && Math.abs(in_hook_center.y - end_point_center.y) < 10) {
+                        console.log('CONNECT TO ' + node.caption);
+                        var from_node = end_point.from_node;
+                        var from_hook = end_point.from_hook;
+                        from_hook.to_node = node;
+                        this.remove(end_point);
+                        from_node.draw_links();
+                        console.log(from_hook);
+                        edge = {
+                            'source': {
+                                'node_id': from_node.id,
+                                'hook_id': from_hook.id
+
+                            },
+                            'target': {
+                                'node_id': node.id,
+                                'hook_id': node.getHookById('in').id
+
+                            },
+
+                        };
+                        this.all_edges.push(edge);
+                        break;
+                    }
+                }
+            }
+        });
+        this.on('mouse:wheel', function (opt) {
+            var delta = opt.e.deltaY;
+            var zoom = this.getZoom();
+            zoom = zoom + delta / 200;
+            if (zoom > 20) zoom = 20;
+            if (zoom < 0.01) zoom = 0.01;
+            this.zoomToPoint({x: opt.e.offsetX, y: opt.e.offsetY}, zoom);
+            opt.e.preventDefault();
+            opt.e.stopPropagation();
+            var vpt = this.viewportTransform;
+            if (zoom < 400 / 1000) {
+                this.viewportTransform[4] = 200 - 1000 * zoom / 2;
+                this.viewportTransform[5] = 200 - 1000 * zoom / 2;
+            } else {
+                if (vpt[4] >= 0) {
+                    this.viewportTransform[4] = 0;
+                } else if (vpt[4] < this.getWidth() - 1000 * zoom) {
+                    this.viewportTransform[4] = this.getWidth() - 1000 * zoom;
+                }
+                if (vpt[5] >= 0) {
+                    this.viewportTransform[5] = 0;
+                } else if (vpt[5] < this.getHeight() - 1000 * zoom) {
+                    this.viewportTransform[5] = this.getHeight() - 1000 * zoom;
+                }
+            }
+
+            // Recalc objects coordinates (otherwise selection is not working)
+            this.forEachObject(function (obj) {
+                obj.setCoords();
+            });
+
+            this.renderAll();
+        });
+
     };
 
     get_nodes() {
@@ -25,6 +137,7 @@ class GraphCanvas extends fabric.Canvas {
     get_node_by_id(id) {
         return this.all_nodes[id];
     };
+
     get_edges() {
         return this.all_edges;
     };
@@ -64,7 +177,15 @@ class GraphCanvas extends fabric.Canvas {
     add_hook_to_node(node_id, hook_data) {
         let node = this.get_node_by_id(node_id);
         node.add_hook(hook_data);
-    }
+    };
+
+    draw_all_links() {
+        for (let node_id in this.all_nodes) {
+            this.all_nodes[node_id].draw_links();
+        }
+        // this.all_nodes.map(obj => obj.draw_links())
+    };
+
 };
 
 // fabric.Object.prototype.transparentCorners = false;
@@ -223,7 +344,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             console.log('moved');
         });
 
-        this.on('mousedown', this.node_mouse_down);
+        this.on('mousedown', this.mouse_down);
 
 
         // this.set('dirty', true);
@@ -388,7 +509,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                 } else {
                     pt2 = hook.to_node.get_hook_center('in');
                 }
-                canvas.remove(hook.path);
+                this_node._graphCanvas.remove(hook.path);
                 var svg_path = this_node.make_svg_path(pt1, pt2);
                 var new_path = new fabric.Path(svg_path, {
                     fill: null,
@@ -399,23 +520,22 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     hoverCursor: 'default'
                 });
                 hook.path = new_path;
-                canvas.add(new_path);
+                this_node._graphCanvas.add(new_path);
                 new_path.sendToBack();
             }
         });
     },
 
-
-    node_mouse_down: function (option) {
+    mouse_down: function (option) {
         console.log('node_mouse_down' + option.target.caption);
-
-        var target = option.target;
+        let canvas = this._graphCanvas;
+        let target = option.target;
         if (option.subTargets && option.subTargets.length > 0) {
-            var inner_target = option.subTargets[0];
+            let inner_target = option.subTargets[0];
             if (inner_target.type == 'hook-bullet') {
-                var hook_bullet = inner_target;
-                var hook = hook_bullet.hook;
-                var end_point;
+                let hook_bullet = inner_target;
+                let hook = hook_bullet.hook;
+                let end_point;
 
                 if (hook.to_node && hook.to_node.type == 'end_point') {
                     // Node already attached to 'floating' endpoint: remove it
@@ -427,7 +547,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     // Create a new endpoint
 
                     console.log(hook)
-                    var pt1 = this.get_hook_center(hook);
+                    let pt1 = this.get_hook_center(hook);
 
                     end_point = new fabric.Circle({
                         type: 'end_point',
@@ -448,9 +568,9 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                         // strokeWidth: 2
                     });
 
-                    canvas.add(end_point);
+                    this.add(end_point);
                     hook.to_node = end_point;
-                    draw_all_links();
+                    // canvas.draw_all_links();
                 }
             }
         }
@@ -501,9 +621,10 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         json_obj.id = make_unique_id();
         json_obj.left += 50;
         json_obj.top += 50;
-        var new_node = new fabric.Node(json_obj);
-        canvas.add(new_node);
-        canvas.setActiveObject(new_node);
+        // var new_node = new fabric.Node(json_obj);
+        _ = this._graphCanvas.add_node(json_obj);
+        // t.add(new_node);
+        this._graphCanvas.setActiveObject(new_node); //TODO: why this? @Pap.
     },
 
 
