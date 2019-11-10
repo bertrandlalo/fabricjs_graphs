@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <title>XqNode demo</title>
+
+    <style>
+        pre {
+            margin-left: 15px !important
+        }
+
+        body {
+            font-family: Helvetica;
+        }
+
+        .flex-row {
+            display: flex;
+            flex-wrap: nowrap;
+            /*max-width: 800px;*/
+        }
+
+        .flex-row .canvas-holder {
+            flex: 1 0 400px;
+            border: 2px solid red;
+            min-width: 0;
+        }
+
+        .flex-row .properties {
+            flex: 0 0 240px;
+            padding: 16px;
+        }
+
+        .flex-row .properties .title {
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #666;
+            font-size: 80%;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            display: block;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .btn-toolbar {
+            margin-top: 16px;
+        }
+
+        .btn-toolbar .btn {
+            margin-left: 8px;
+        }
+
+        .btn-toolbar .btn:first-of-type {
+            margin-left: 0;
+        }
+
+        .btn {
+            text-transform: uppercase;
+            text-decoration: none;
+            text-align: center;
+            padding: 4px 12px;
+        }
+
+        .btn-primary {
+            color: white;
+            background-color: #304050;
+        }
+
+    </style>
+    <script src="assets/js/vendor/fabric.js"></script>
+    <script src="assets/js/fabric_graphs.js"></script>
+
+</head>
+<body>
+<!--<script async defer src="https://buttons.github.io/buttons.js"></script>-->
+
+
+<div id="bd-wrapper">
+    <h2>Fabric Nodes Tests</h2>
+
+    <div class="flex-row">
+        <div class="canvas-holder">
+            <canvas id="node-canvas" width="400" height="400"></canvas>
+        </div>
+        <div class="properties">
+            <div class="title">Properties</div>
+            <div class="form-group">
+                <label>Node Id</label>
+                <input type="text" name="node_id">
+            </div>
+            <div class="form-group">
+                <label>Caption</label>
+                <input type="text" name="caption">
+            </div>
+            <div class="form-group">
+                <label>Fill</label>
+                <input type="text" name="fill">
+            </div>
+            <div class="form-group">
+                <label>JSON</label>
+                <textarea name="json"></textarea>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="btn-toolbar">
+        <a id="clone-btn" class="btn btn-primary" href="#">Duplicate</a>
+        <a id="export-btn" class="btn btn-primary" href="#">Export Graph</a>
+    </div>
+
+    <pre id="graph-str"></pre>
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <script id="main">
+
+        var toto;
+
+
+
+        (function () {
+            fabric.Object.prototype.transparentCorners = false;
+            var canvas = new GraphCanvas('node-canvas');
+
+            // var canvas = this.__canvas = new fabric.Canvas('node-canvas', {
+            //     backgroundColor: '#eee',
+            //     HOVER_CURSOR: 'pointer'
+            // });
+            //
+            // var canvas_element = document.getElementById('node-canvas');
+            //
+            // canvas_element.graphApi = {
+            //     get_nodes: function() {return all_nodes;},
+            //     get_edges: function() {return all_edges;},
+            //     get_canvas: function() {return canvas;},
+            //     get_selected_node: function() {
+            //         var obj = canvas.getActiveObject();
+            //         return obj.type === 'Node' ? obj : null;
+            //         },
+            //     to_objects: graph_toObject
+            // };
+
+
+            canvas.selection = false;
+
+            // var all_nodes = {};
+            // var all_edges = [];
+
+
+
+
+
+            function clone_selected_node() {
+                var obj = canvas.getActiveObject();
+                if (obj.type == 'node') {
+                    obj.clone();
+                }
+            }
+
+
+            function resize_canvas(ev) {
+                var canvas_holder = canvas.upperCanvasEl.closest('.canvas-holder');
+
+                canvas.setWidth(canvas_holder.clientWidth);
+                canvas.setHeight(canvas_holder.clientHeight);
+            }
+
+            window.addEventListener('resize', resize_canvas);
+            resize_canvas();
+
+            /* Take from here: https://stackoverflow.com/questions/24384804/fabric-js-subclassing-fabric-group-error-cannot-read-property-async-of-und
+            * Synchronous loaded object
+            */
+            fabric.Node.fromJSON = function (object, callback) {
+                return new fabric.Node(object);
+            };
+
+
+            nn1 = canvas.add_node({
+                id: '#1',
+                caption: 'Node-1',
+                top: 150,
+                left: 250,
+                hooks_data: []
+            });
+            canvas.add_hook_to_node('#1',
+                {
+                    "id": "out",
+                    "caption": "out",
+                    "type": "question-out",
+                    "in": false,
+                    "out": true,
+                    "side": "right",
+                    "align": "top",
+                    "fill": "rgba(250,250,0,0.5)",
+                    "size": 5
+                });
+
+
+
+            canvas.on('object:moved', function (options) {
+                // console.log('object:moved ' + options.target.type);
+                draw_all_links();
+
+                if (options.target.type == 'end_point') {
+                    // check if connection is done
+                    var end_point = options.target;
+                    var end_point_center = options.target.getCenterPoint();
+
+
+                    for (node_id in all_nodes) {
+                        var node = all_nodes[node_id];
+                        var in_hook_center = node.get_hook_center('in');
+                        if (Math.abs(in_hook_center.x - end_point_center.x) < 10 && Math.abs(in_hook_center.y - end_point_center.y) < 10) {
+                            console.log('CONNECT TO ' + node.caption);
+                            var from_node = end_point.from_node;
+                            var from_hook = end_point.from_hook;
+                            from_hook.to_node = node;
+                            canvas.remove(end_point);
+                            from_node.draw_links();
+                            console.log(from_hook);
+                            edge = {
+                                'source': {
+                                    'node_id': from_node.id,
+                                    'hook_id': from_hook.id
+
+                                },
+                                'target': {
+                                    'node_id': node.id,
+                                    'hook_id': node.getHookById('in').id
+
+                                },
+
+                            };
+                            all_edges.push(edge);
+                            break;
+                        }
+                    }
+                }
+            });
+
+            canvas.on('object:moving', draw_all_links);
+            canvas.on('mousedown', function (options) {
+                console.log('mouse:down ' + options.target.type);
+                var coords = options.target.getLocalPointer();
+                var x_abs = coords.x / options.target.scaleX;
+                var y_abs = coords.y / options.target.scaleY;
+                console.log('coordinates ' + x_abs + ', ' + y_abs);
+
+            });
+
+            canvas.on('mousedown', graph_toObject);
+
+
+            canvas.on('mouse:wheel', function(opt) {
+                var delta = opt.e.deltaY;
+                var zoom = canvas.getZoom();
+                zoom = zoom + delta / 200;
+                if (zoom > 20) zoom = 20;
+                if (zoom < 0.01) zoom = 0.01;
+                canvas.zoomToPoint({x: opt.e.offsetX, y: opt.e.offsetY}, zoom);
+                opt.e.preventDefault();
+                opt.e.stopPropagation();
+                var vpt = this.viewportTransform;
+                if (zoom < 400 / 1000) {
+                    this.viewportTransform[4] = 200 - 1000 * zoom / 2;
+                    this.viewportTransform[5] = 200 - 1000 * zoom / 2;
+                }
+                else {
+                    if (vpt[4] >= 0) {
+                        this.viewportTransform[4] = 0;
+                    } else if (vpt[4] < canvas.getWidth() - 1000 * zoom) {
+                        this.viewportTransform[4] = canvas.getWidth() - 1000 * zoom;
+                    }
+                    if (vpt[5] >= 0) {
+                        this.viewportTransform[5] = 0;
+                    } else if (vpt[5] < canvas.getHeight() - 1000 * zoom) {
+                        this.viewportTransform[5] = canvas.getHeight() - 1000 * zoom;
+                    }
+                }
+
+                // Recalc objects coordinates (otherwise selection is not working)
+                canvas.forEachObject(function (obj) {
+                    obj.setCoords();
+                });
+
+                canvas.renderAll();
+            });
+
+
+            // Start drag (pan) on ctrl+click
+            canvas.on('mouse:down', function(opt) {
+                var evt = opt.e;
+                if (evt.ctrlKey === true) {
+                    this.isDragging = true;
+                    this.selection = false;
+                    this.lastPosX = evt.clientX;
+                    this.lastPosY = evt.clientY;
+                }
+            });
+
+            // Do drag
+            canvas.on('mouse:move', function(opt) {
+                if (this.isDragging) {
+                    var e = opt.e;
+                    this.viewportTransform[4] += e.clientX - this.lastPosX;
+                    this.viewportTransform[5] += e.clientY - this.lastPosY;
+                    this.requestRenderAll();
+                    this.lastPosX = e.clientX;
+                    this.lastPosY = e.clientY;
+                }
+            });
+
+            // End drag
+            canvas.on('mouse:up', function(opt) {
+                this.isDragging = false;
+                this.selection = true;
+
+                canvas.getObjects().forEach(function (targ) {
+                    targ.setCoords();
+                });
+
+                canvas.renderAll();
+
+            });
+
+
+
+            function onMouseDown(options) {
+                console.log('mouseDown ' + options.target.caption);
+
+                if (options.subTargets) {
+                    var hook = options.subTargets[0];
+                    if (hook.type == 'hook') {
+                        hook.bullet.set('fill', hook.selected ? '#888' : 'red');
+                        hook.selected = !hook.selected;
+                        canvas.renderAll();
+                    }
+                }
+
+            }
+
+
+            function draw_all_links() {
+
+                for (node_id in all_nodes) {
+                    all_nodes[node_id].draw_links();
+                }
+
+            }
+
+            function graph_toObject() {
+                let graph = {
+                        'nodes': all_nodes,
+                        'edges': all_edges
+                    }
+                ;
+                console.log(graph);
+                return graph;
+            }
+
+            // toto = graph_toObject;
+
+            // var bullet_a = nn1.get_hook_center('A');
+            // console.log('hook center: ' + bullet_a.x + ', ' + bullet_a.y);
+
+            draw_all_links();
+
+            nn1JSON = nn1.toJSON();
+            console.log('nn1 to Object: ', nn1JSON);
+            // update id
+            nn1JSON['id'] = nn1JSON['id'] + 'COPY';
+            nn1COPY = fabric.Node.fromJSON(nn1JSON);
+            canvas.add(nn1COPY);
+
+
+        })();
+
+
+        document.addEventListener('nodes.selected', function(ev) {
+            console.log('nodes.selected' + ev.detail);
+            if (ev.detail) {
+                var node_properties = ev.detail;
+                var find_prop_divs = document.getElementsByClassName('properties');
+                if (find_prop_divs.length) {
+                    var prop_div = find_prop_divs[0];
+                    prop_div._node = node_properties.node;
+                    var input_id = prop_div.querySelector('input[name=node_id]');
+                    var input_caption = prop_div.querySelector('input[name=caption]');
+                    var input_fill = prop_div.querySelector('input[name=fill]');
+                    var ta_json = prop_div.querySelector('textarea[name=json]');
+
+                    input_id.value = node_properties.id;
+                    input_caption.value = node_properties.caption;
+                    input_fill.value = node_properties.fill;
+                    ta_json.value = node_properties.json;
+                }
+            }
+        });
+
+        var find_prop_divs = document.getElementsByClassName('properties');
+        if (find_prop_divs.length) {
+            var prop_div = find_prop_divs[0];
+            prop_div.addEventListener('change', function(ev) {
+                var node = prop_div._node;
+                console.log('node: ' + node);
+                var element = ev.target;
+                if (element.getAttribute('name') == 'fill') {
+                    // node.setFill(element.value);
+                    node.body.set('fill', element.value);
+                    node.dirty = true;
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                }
+                if (element.getAttribute('name') == 'caption') {
+                    // node.setFill(element.value);
+                    node.caption_object.set('text', element.value);
+                    node.dirty = true;
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                }
+            });
+        }
+
+        var clone_btn = document.getElementById('clone-btn');
+        clone_btn.addEventListener('click', function(ev) {
+            // Click on clone btn
+            // Find the div with class 'properties', because we have attached _node to it.
+            var find_prop_divs = document.getElementsByClassName('properties');
+            if (find_prop_divs.length) {
+                var prop_div = find_prop_divs[0];
+                var node = prop_div._node;
+                node.clone();
+            }
+        });
+
+        var export_btn = document.getElementById('export-btn');
+        export_btn.addEventListener('click', function(ev) {
+            // Click on export btn
+            var graph_element = document.getElementById('node-canvas');
+            // var graph_obj = fabric_canvas.graph_toObject();
+            var graph_api = graph_element.graphApi;
+            var graph_obj = graph_api.to_objects();
+            var graph_str = JSON.stringify(graph_obj, null, 2);
+            document.getElementById('graph-str').innerText = graph_str;
+        });
+
+
+        window.addEventListener('keydown', function(ev) {
+            if (ev.key == 'd' && ev.ctrlKey) {
+                ev.preventDefault();
+                var graph_element = document.getElementById('node-canvas');
+                var graph_api = graph_element.graphApi;
+                var node = graph_api.get_selected_node();
+                if (node) {
+                    node.clone();
+                }
+            }
+        } );
+
+
+        // var find_canvas_holder_divs = document.getElementsByClassName('canvas-holder');
+        // if (find_canvas_holder_divs.length) {
+        //   var canvas_holder = find_canvas_holder_divs[0];
+        //   window.addEventListener('resize', function (ev) {
+        //     var canvas = document.getElementById('node-canvas');
+        //     canvas.width = canvas_holder.clientWidth;
+        //     canvas.height = canvas_holder.clientHeight;
+        //
+        //   });
+        // }
+
+
+
+
+
+    </script>
+
+</div>
+
+
+<script>
+    (function () {
+        fabric.util.addListener(fabric.window, 'load', function () {
+            var canvas = this.__canvas || this.canvas,
+                canvases = this.__canvases || this.canvases;
+
+            canvas && canvas.calcOffset && canvas.calcOffset();
+
+            if (canvases && canvases.length) {
+                for (var i = 0, len = canvases.length; i < len; i++) {
+                    canvases[i].calcOffset();
+                }
+            }
+        });
+    })();
+</script>
+
+
+</body>
+</html>
