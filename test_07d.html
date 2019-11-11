@@ -134,10 +134,10 @@
         var toto;
 
 
+        var canvas = new GraphCanvas('node-canvas');
 
-        (function () {
+        (function (canvas) {
             fabric.Object.prototype.transparentCorners = false;
-            var canvas = new GraphCanvas('node-canvas');
 
             // var canvas = this.__canvas = new fabric.Canvas('node-canvas', {
             //     backgroundColor: '#eee',
@@ -164,9 +164,6 @@
             // var all_edges = [];
 
 
-
-
-
             function clone_selected_node() {
                 var obj = canvas.getActiveObject();
                 if (obj.type == 'node') {
@@ -188,9 +185,9 @@
             /* Take from here: https://stackoverflow.com/questions/24384804/fabric-js-subclassing-fabric-group-error-cannot-read-property-async-of-und
             * Synchronous loaded object
             */
-            fabric.Node.fromJSON = function (object, callback) {
-                return new fabric.Node(object);
-            };
+            // fabric.Node.fromJSON = function (object, callback) {
+            //     return new fabric.Node(object);
+            // };
 
 
             nn1 = canvas.add_node({
@@ -198,47 +195,29 @@
                 caption: 'Node-1',
                 top: 150,
                 left: 250,
-                hooks_data: []
+                hooks: [{
+                    "id": "in",
+                    "caption": "in",
+                    "type": "default",
+                    "io": "in",
+                    "bullet_options": {"side": "left"}
+                }]
             });
-            canvas.add_hook_to_node('#1',
-                {
-                    "id": "out",
-                    "caption": "out",
-                    "type": "question-out",
-                    "in": false,
-                    "out": true,
-                    "side": "right",
-                    "align": "top",
-                    "fill": "rgba(250,250,0,0.5)",
-                    "size": 5
-                });
+
+            canvas.add_hook_to_node('#1', {id: "out", caption: "out", io: "out", bullet_options: {"side": "right"}});
 
 
 
-            function onMouseDown(options) {
-                console.log('mouseDown ' + options.target.caption);
 
-                if (options.subTargets) {
-                    var hook = options.subTargets[0];
-                    if (hook.type == 'hook') {
-                        hook.bullet.set('fill', hook.selected ? '#888' : 'red');
-                        hook.selected = !hook.selected;
-                        canvas.renderAll();
-                    }
-                }
-
-            }
-
-
-            function graph_toObject() {
-                let graph = {
-                        'nodes': all_nodes,
-                        'edges': all_edges
-                    }
-                ;
-                console.log(graph);
-                return graph;
-            }
+            // function graph_toObject() {
+            //     let graph = {
+            //             'nodes': all_nodes,
+            //             'edges': all_edges
+            //         }
+            //     ;
+            //     console.log(graph);
+            //     return graph;
+            // }
 
             // toto = graph_toObject;
 
@@ -247,18 +226,19 @@
 
             // draw_all_links();
 
-            nn1JSON = nn1.toJSON();
-            console.log('nn1 to Object: ', nn1JSON);
+            nn1JOBJECT = nn1.toObject();
+            console.log('nn1 to Object: ', nn1JOBJECT);
             // update id
-            nn1JSON['id'] = nn1JSON['id'] + 'COPY';
-            nn1COPY = fabric.Node.fromJSON(nn1JSON);
-            canvas.add(nn1COPY);
+            nn1JOBJECT.caption = nn1JOBJECT.caption + 'COPY';
+            nn1JOBJECT.id = nn1JOBJECT.id + 'COPY';
+            console.log(nn1JOBJECT);
+            nn1COPY = canvas.add_node(nn1JOBJECT);
 
 
-        })();
+        })(canvas);
 
 
-        document.addEventListener('nodes.selected', function(ev) {
+        document.addEventListener('nodes.selected', function (ev) {
             console.log('nodes.selected' + ev.detail);
             if (ev.detail) {
                 var node_properties = ev.detail;
@@ -282,7 +262,7 @@
         var find_prop_divs = document.getElementsByClassName('properties');
         if (find_prop_divs.length) {
             var prop_div = find_prop_divs[0];
-            prop_div.addEventListener('change', function(ev) {
+            prop_div.addEventListener('change', function (ev) {
                 var node = prop_div._node;
                 console.log('node: ' + node);
                 var element = ev.target;
@@ -304,7 +284,7 @@
         }
 
         var clone_btn = document.getElementById('clone-btn');
-        clone_btn.addEventListener('click', function(ev) {
+        clone_btn.addEventListener('click', function (ev) {
             // Click on clone btn
             // Find the div with class 'properties', because we have attached _node to it.
             var find_prop_divs = document.getElementsByClassName('properties');
@@ -316,18 +296,19 @@
         });
 
         var export_btn = document.getElementById('export-btn');
-        export_btn.addEventListener('click', function(ev) {
+
+        export_btn.addEventListener('click', function (ev) {
             // Click on export btn
-            var graph_element = document.getElementById('node-canvas');
+            // var graph_element = document.getElementById('node-canvas');
             // var graph_obj = fabric_canvas.graph_toObject();
-            var graph_api = graph_element.graphApi;
-            var graph_obj = graph_api.to_objects();
+            // var graph_api = graph_element.graphApi;
+            var graph_obj = canvas.get_object(); //graph_api.to_objects();
             var graph_str = JSON.stringify(graph_obj, null, 2);
             document.getElementById('graph-str').innerText = graph_str;
         });
 
 
-        window.addEventListener('keydown', function(ev) {
+        window.addEventListener('keydown', function (ev) {
             if (ev.key == 'd' && ev.ctrlKey) {
                 ev.preventDefault();
                 var graph_element = document.getElementById('node-canvas');
@@ -337,7 +318,7 @@
                     node.clone();
                 }
             }
-        } );
+        });
 
 
         // var find_canvas_holder_divs = document.getElementsByClassName('canvas-holder');
@@ -350,9 +331,6 @@
         //
         //   });
         // }
-
-
-
 
 
     </script>
