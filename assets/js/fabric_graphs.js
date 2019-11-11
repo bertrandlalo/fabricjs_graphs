@@ -595,8 +595,12 @@ class Hook {
          * @param {string} [options.stroke] - color of stroke
          * @param {string} [options.fill] - color of fill
          */
+        let default_side = 'left';
+        if (this.io === 'in') {
+            default_side = 'right'
+        }
 
-        let bullet_side = options.side || 'right';
+        let bullet_side = options.side || default_side;
 
         if (bullet_side === 'right') {
             this.x = this.node.body.left + this.node.body.width;
