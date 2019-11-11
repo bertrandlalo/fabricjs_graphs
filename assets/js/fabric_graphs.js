@@ -20,19 +20,23 @@ class GraphCanvas extends fabric.Canvas {
         // Custom event listeners
         //////////////
         this.on('object:moving', this.draw_all_links);
-        this.on('mousedown', function (options) {
-            console.log('mouse:down ' + options.target.type);
-            var coords = options.target.getLocalPointer();
-            var x_abs = coords.x / options.target.scaleX;
-            var y_abs = coords.y / options.target.scaleY;
-            console.log('coordinates ' + x_abs + ', ' + y_abs);
+
+        this.on('mouse:down', function (options) {
+            var evt = options.e;
+            if (evt.ctrlKey === true) {
+                this.isDragging = true;
+                this.selection = false;
+                this.lastPosX = evt.clientX;
+                this.lastPosY = evt.clientY;
+            }
+
         });
 
 
         // Do drag
-        this.on('mouse:move', function (opt) {
+        this.on('mouse:move', function (options) {
             if (this.isDragging) {
-                var e = opt.e;
+                var e = options.e;
                 this.viewportTransform[4] += e.clientX - this.lastPosX;
                 this.viewportTransform[5] += e.clientY - this.lastPosY;
                 this.requestRenderAll();
@@ -313,6 +317,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         };
 
     },
+
     create_body: function () {
         this.body = new fabric.Rect({
             name: 'body',
