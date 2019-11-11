@@ -23,7 +23,7 @@ class GraphCanvas extends fabric.Canvas {
         // Custom event listeners
         //////////////
         // this.on('object:moving', this.draw_all_links);
-        this.on('object:moving', function(options) {
+        this.on('object:moving', function (options) {
             console.log('object:moving ' + options.target.type);
             if (options.target.type === 'Node') {
                 // Moving object is a node, redraw all links from this node (should be to AND from)
@@ -78,9 +78,7 @@ class GraphCanvas extends fabric.Canvas {
 
             if (options.target.type === 'Node') {
                 options.target.draw_links();
-            }
-
-            else if (options.target.type === 'end_point') {
+            } else if (options.target.type === 'end_point') {
                 var end_point = options.target;
                 this.end_point_moved(end_point);
             }
@@ -233,6 +231,21 @@ class GraphCanvas extends fabric.Canvas {
         // Add node to canvas
         this.add(node);
         return node;
+    };
+
+    remove_node(node) {
+        // Rempve from all_nodes
+        delete this.all_nodes[node.id];
+
+        for (let hook_id in node.hooks_by_id) {
+            let hook = node.hooks_by_id[hook_id];
+            hook.remove_all_links();
+        }
+
+        // Remove from canvas
+        this.remove(node)
+
+
     };
 
     add_hook_to_node(node_id, hook_data) {
@@ -480,7 +493,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     //     hook.paths = [];
     // },
 
-    draw_path: function(pt1, pt2) {
+    draw_path: function (pt1, pt2) {
 
         // draw new one
         let svg_path = this.make_svg_path(pt1, pt2);
@@ -537,8 +550,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     var link_from_other_hook = other_hook.links[hook.get_ref()];
                     canvas.remove(link_from_other_hook.path);
                     link_from_other_hook.path = this_node.draw_path(pt2, pt1);
-                }
-                else {
+                } else {
                     // hook is of type 'out': it holds the path
                     if (link.path) {
                         canvas.remove(link.path);
@@ -546,7 +558,8 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     link.path = this_node.draw_path(pt1, pt2);
                 }
             }
-        };
+        }
+        ;
 
         // this_node.hooks.out.forEach(function(hook) {
         //     for (var hook_id in hook.links) {       // hook.links is array with hook_id as keys
@@ -577,7 +590,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                 let hook_bullet = inner_target;
                 let hook = hook_bullet.hook;
 
-                if (option.e && option.e.ctrlKey === true ) {
+                if (option.e && option.e.ctrlKey === true) {
                     console.log('CONTROL CLICK ON BULLET');
                     // Ctrl-Click on bullet means remove all links
                     for (var hook_ref in hook.links) {       // hook.links is array with hook_ref as keys
@@ -590,8 +603,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                         delete other_hook.links[hook.get_ref()];
                     }
 
-                }
-                else {
+                } else {
                     // Click without Ctrl key pressed:  create floating endpoint
                     // this object was indeed a hook bullet
                     console.log(inner_target);
@@ -736,22 +748,22 @@ class Hook {
             default_side = 'left'
         }
 
-        let bullet_side = options.side || default_side;
+        this.side = options.side || default_side;
 
-        if (bullet_side === 'right') {
+        if (this.side === 'right') {
             this.x = this.node.body.left + this.node.body.width;
-            this.y = this.node.body.top + this.node.max_hooks_positions[bullet_side];
+            this.y = this.node.body.top + this.node.max_hooks_positions[this.side];
             this.caption_x = this.x - 12;
             this.caption_y = this.y;
-        } else if (bullet_side === 'left') {
+        } else if (this.side === 'left') {
             this.x = this.node.body.left;
-            this.y = this.node.body.top + this.node.max_hooks_positions[bullet_side]; // -this.body.height / 2 + this.max_hooks_positions[hook.side];
+            this.y = this.node.body.top + this.node.max_hooks_positions[this.side]; // -this.body.height / 2 + this.max_hooks_positions[hook.side];
             this.caption_x = this.x + 12;
             this.caption_y = this.y;
         } else {
-            throw "Bullet side is erroneous: " + bullet_side;
+            throw "Bullet side is erroneous: " + this.side;
         }
-        this.node.max_hooks_positions[bullet_side] += 15; // increment max_hooks_positions
+        this.node.max_hooks_positions[this.side] += 15; // increment max_hooks_positions
 
         this.bullet = new fabric.Circle({
             node: this.node,
@@ -774,7 +786,7 @@ class Hook {
             name: 'hook-caption',
             type: 'hook-caption',
             fontFamily: 'Arial', fontSize: 10, fill: '#222', fontStyle: 'normal',
-            originX: bullet_side,
+            originX: this.side,
             originY: 'center',
             top: this.caption_y, left: this.caption_x,
             width: 20, height: 20
@@ -815,12 +827,25 @@ class Hook {
         if (other_hook_ref in this.links) {
             var link = this.links[other_hook_ref];
             if (link.path) {
-                this.node.canvas.remove(path);
+                this.node.canvas.remove(link.path);
             }
             delete this.links[other_hook_ref];
         }
     }
 
+    remove_all_links() {
+        for (const [key, link] of Object.entries(this.links)) {
+            if (this.io === 'in') {
+                // Remove its output links by removing their reference in the next
+                link.other_hook.remove_link(this)
+            } else {
+                // Remove its input links by removing their reference in the previous
+                link.other_hook.remove_link(this)
+
+            }
+        }
+
+    }
 
     get_center() {
         var node = this.node;
