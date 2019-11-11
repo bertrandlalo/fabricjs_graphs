@@ -40,8 +40,10 @@
     </div>
 
     <div class="btn-toolbar">
+        <a id="delete-btn" class="btn btn-primary" href="#">Delete</a>
         <a id="clone-btn" class="btn btn-primary" href="#">Duplicate</a>
         <a id="export-btn" class="btn btn-primary" href="#">Export Graph</a>
+
     </div>
 
     <pre id="graph-str"></pre>
@@ -124,7 +126,12 @@
                 }]
             });
 
-            canvas.add_hook_to_node('#1', {id: "out1", caption: "out1 very long", io: "out", bullet_options: {"side": "right"}});
+            canvas.add_hook_to_node('#1', {
+                id: "out1",
+                caption: "out1 very long",
+                io: "out",
+                bullet_options: {"side": "right"}
+            });
             canvas.add_hook_to_node('#1', {id: "out2", caption: "out2", io: "out", bullet_options: {"side": "right"}});
 
 
@@ -215,42 +222,45 @@
         });
 
         var export_btn = document.getElementById('export-btn');
-
         export_btn.addEventListener('click', function (ev) {
             // Click on export btn
-            // var graph_element = document.getElementById('node-canvas');
-            // var graph_obj = fabric_canvas.graph_toObject();
-            // var graph_api = graph_element.graphApi;
             var graph_obj = canvas.get_object(); //graph_api.to_objects();
             var graph_str = JSON.stringify(graph_obj, null, 2);
             document.getElementById('graph-str').innerText = graph_str;
         });
 
+        var delete_btn = document.getElementById('delete-btn');
+        delete_btn.addEventListener('click', function (ev) {
+            // Click on delete btn
+
+            let node = canvas.get_selected_node();
+            if (node) {
+                canvas.remove_node(node);
+            }
+        });
 
         window.addEventListener('keydown', function (ev) {
+            console.log(ev.key);
             if (ev.key == 'd' && ev.ctrlKey) {
                 ev.preventDefault();
-                var graph_element = document.getElementById('node-canvas');
-                var graph_api = graph_element.graphApi;
-                var node = graph_api.get_selected_node();
+                // var graph_element = document.getElementById('node-canvas');
+                // var canvas = graph_element.graphApi;
+                var node = canvas.get_selected_node();
                 if (node) {
                     node.clone();
                 }
             }
+            if (ev.key === "Delete" || ev.key == "Backspace") {
+                ev.preventDefault();
+                // var graph_element = document.getElementById('node-canvas');
+                // var canvas = graph_element.graphApi;
+                let node = canvas.get_selected_node();
+                if (node) {
+                    canvas.remove_node(node);
+                }
+            }
+
         });
-
-
-        // var find_canvas_holder_divs = document.getElementsByClassName('canvas-holder');
-        // if (find_canvas_holder_divs.length) {
-        //   var canvas_holder = find_canvas_holder_divs[0];
-        //   window.addEventListener('resize', function (ev) {
-        //     var canvas = document.getElementById('node-canvas');
-        //     canvas.width = canvas_holder.clientWidth;
-        //     canvas.height = canvas_holder.clientHeight;
-        //
-        //   });
-        // }
-
 
     </script>
 

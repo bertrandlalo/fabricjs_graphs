@@ -237,11 +237,15 @@ class GraphCanvas extends fabric.Canvas {
         // Rempve from all_nodes
         delete this.all_nodes[node.id];
 
+        // Remove links
         for (let hook_id in node.hooks_by_id) {
             let hook = node.hooks_by_id[hook_id];
             hook.remove_all_links();
         }
-
+        // Eventually, remove floating endpoint
+        if (this.floating_endpoint && this.floating_endpoint.from_node == node){
+            this.clear_floating_endpoint()
+        }
         // Remove from canvas
         this.remove(node)
 
