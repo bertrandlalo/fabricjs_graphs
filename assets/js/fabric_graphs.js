@@ -16,6 +16,9 @@ class GraphCanvas extends fabric.Canvas {
         super(options);
         this.all_nodes = {};
         this.all_edges = [];
+        this.floating_endpoint = null;
+
+
         //////////////
         // Custom event listeners
         //////////////
@@ -65,7 +68,11 @@ class GraphCanvas extends fabric.Canvas {
 
 
                 for (let node_id in this.all_nodes) {
+
                     let node = this.all_nodes[node_id];
+                    for (let in_hook in node.hooks.in){
+                        // do stuff
+                    }
                     let in_hook_center = node.get_hook_center('in');
                     console.log(node.getCenterPoint());
                     console.log(in_hook_center);
@@ -73,6 +80,13 @@ class GraphCanvas extends fabric.Canvas {
                         console.log('CONNECT TO ' + node.caption);
                         var from_node = end_point.from_node;
                         var from_hook = end_point.from_hook;
+
+                        // check that link  from  from_hook to to_hook does not exist already
+
+                        from_node.links.push({
+                            to_hook:
+                        })
+
                         from_hook.to_node = node;
                         this.remove(end_point);
                         from_node.draw_links();
@@ -85,7 +99,7 @@ class GraphCanvas extends fabric.Canvas {
                             },
                             'target': {
                                 'node_id': node.id,
-                                'hook_id': node.getHookById('in').id
+                                'hook_id': node.get_hook_by_id('in').id
 
                             },
 
@@ -198,6 +212,13 @@ class GraphCanvas extends fabric.Canvas {
         // this.all_nodes.map(obj => obj.draw_links())
     };
 
+    clear_floating_endpoint() {
+        if (this.floating_endpoint) {
+            this.remove(this.floating_endpoint);
+            this.floating_endpoint = null;
+        }
+    }
+
 };
 
 
@@ -308,7 +329,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         this.setShadow({color: 'rgba(255,255,255,0.3)'});
 
         this.connect = function (hook_id, to_node) {
-            var hook = this.getHookById(hook_id);
+            var hook = this.get_hook_by_id(hook_id);
             hook.to_node = to_node;
         };
 
@@ -357,7 +378,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         if (typeof hook_arg == "object") {
             hook = hook_arg;
         } else {
-            hook = this.getHookById(hook_arg);
+            hook = this.get_hook_by_id(hook_arg);
         }
 
         bullet_center = hook.bullet.getCenterPoint();
@@ -401,43 +422,72 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 
     },
 
-    getHookById: function (hook_id) {
+    get_hook_by_id: function (hook_id) {
         if (!this.hooks_by_id.hasOwnProperty(hook_id)) {
             throw "Node has no hook with id " + hook_id;
         }
         return this.hooks_by_id[hook_id];
     },
 
+    clean_hook_paths: function(hook) {
+        hook.paths.forEach(function(path){
+            this.canvas.remove(path);
+        });
+        hook.paths = [];
+    },
+
+    draw_link_from_hook: function(hook, pt1, pt2) {
+
+        // draw new one
+        let svg_path = this.make_svg_path(pt1, pt2);
+        let new_path = new fabric.Path(svg_path, {
+            fill: null,
+            stroke: 'green',
+            opacity: 0.5,
+            strokeWidth: 2,
+            selectable: false,
+            hoverCursor: 'default'
+        });
+        // clean existing paths
+        this.clean_hook_paths(hook);
+        // draw new path
+        hook.paths.push(new_path);
+        this.canvas.add(new_path);
+        new_path.sendToBack();
+    },
 
     draw_links: function () {
         // Draw all links from hooks of this node
         let this_node = this;
-        $.each(this.hooks.out, function (i, hook) {
-            if (hook.io === 'out' && hook.to_node) {
-                let pt1, pt2;
-                pt1 = this_node.get_hook_center(hook);
-                if (hook.to_node.type == 'end_point') {
-                    pt2 = hook.to_node.getCenterPoint();
-                } else {
-                    pt2 = hook.to_node.get_hook_center('in');
-                }
-                console.log(this_node);
-                this_node.canvas.remove(hook.path);
-                let svg_path = this_node.make_svg_path(pt1, pt2);
-                let new_path = new fabric.Path(svg_path, {
-                    fill: null,
-                    stroke: 'green',
-                    opacity: 0.5,
-                    strokeWidth: 2,
-                    selectable: false,
-                    hoverCursor: 'default'
-                });
-                console.log(new_path);
-                hook.path = new_path;
-                this_node.canvas.add(new_path);
-                new_path.sendToBack();
-            }
-        });
+        console.log(this.canvas.all_edges);
+        // draw floating links:
+        if (this.canvas.floating_endpoint) {
+            let floating_endpoint = this.canvas.floating_endpoint;
+            let source_hook = floating_endpoint.from_hook;
+            let source_node = floating_endpoint.from_node;
+            console.log(floating_endpoint);
+            pt1 = source_node.get_hook_center(source_hook);
+            pt2 = floating_endpoint.getCenterPoint();
+            // clean existing paths
+            // this.clean_hook_paths(hook);
+            // draw new path
+            this.draw_link_from_hook(hook, pt1, pt2)
+        }
+        // Draw edges
+        this_node = this;
+        this.canvas.all_edges.forEach(function (edge) {
+            let source_node = this_node.canvas.get_node_by_id(edge.source.node_id);
+            let target_node = this_node.canvas.get_node_by_id(edge.target.node_id);
+            let source_hook = source_node.get_hook_by_id(edge.source.hook_id);
+            let target_hook = source_node.get_hook_by_id(edge.target.hook_id);
+
+            pt1 = source_node.get_hook_center(source_hook);
+            pt2 = target_node.get_hook_center(target_hook);
+            // clean existing paths
+            // draw new path
+            this_node.draw_link_from_hook(source_hook, pt1, pt2)
+        })
+
     },
 
 
@@ -457,43 +507,38 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                 let hook = hook_bullet.hook;
                 let end_point;
                 if (hook.io === 'out') {
-                    if (hook.to_node && hook.to_node.type === 'end_point') {
-                        // Node already attached to 'floating' endpoint: remove it
-                        console.log('Removing end point' + hook)
-                        canvas.remove(hook.path);
-                        canvas.remove(hook.to_node);
-                        hook.path = null;
-                        hook.to_node = null;
-                    } else {
-                        // Create a new endpoint
 
-                        console.log(option);
+                    this.canvas.clear_floating_endpoint();
 
-                        let pt1 = this.get_hook_center(hook);
+                    // Create a new endpoint
 
-                        end_point = new fabric.Circle({
-                            type: 'end_point',
-                            name: 'end_point',
-                            originX: 'center',
-                            originY: 'center',
-                            top: pt1.y + 5,
-                            left: pt1.x + 25,
-                            radius: 5,
-                            fill: 'red',
-                            hasControls: false,
-                            hasBorders: false,
-                            from_hook: hook,
-                            from_node: target,
-                            hoverCursor: 'default',
+                    console.log(option);
 
-                            // stroke: 'red',
-                            // strokeWidth: 2
-                        });
+                    let pt1 = this.get_hook_center(hook);
 
-                        this.canvas.add(end_point);
-                        hook.to_node = end_point;
-                        this.canvas.draw_all_links();
-                    }
+                    end_point = new fabric.Circle({
+                        type: 'end_point',
+                        name: 'end_point',
+                        originX: 'center',
+                        originY: 'center',
+                        top: pt1.y + 5,
+                        left: pt1.x + 25,
+                        radius: 5,
+                        fill: 'red',
+                        hasControls: false,
+                        hasBorders: false,
+                        from_hook: hook,
+                        from_node: target,
+                        hoverCursor: 'default',
+
+                        // stroke: 'red',
+                        // strokeWidth: 2
+                    });
+
+                    this.canvas.add(end_point);
+                    this.canvas.floating_endpoint = end_point;
+                    // hook.to_node = end_point;
+                    this.canvas.draw_all_links();
 
                 }
 
@@ -584,6 +629,7 @@ class Hook {
         this.caption = caption;
         this.type = type;
         this.io = io;
+        this.paths = [];
     }
 
     create_bullet(options) {
