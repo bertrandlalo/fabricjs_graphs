@@ -15,7 +15,6 @@ class GraphCanvas extends fabric.Canvas {
     constructor(options) {
         super(options);
         this.all_nodes = {};
-        // this.all_edges = [];
         this.floating_endpoint = null;
 
 
@@ -155,20 +154,6 @@ class GraphCanvas extends fabric.Canvas {
                         source_hook.add_link(target_hook);
                         target_hook.add_link(source_hook);
 
-                        // let edge = {
-                        //     'source': {
-                        //         'node_id': source_node.id,
-                        //         'hook_id': source_hook.id
-                        //
-                        //     },
-                        //     'target': {
-                        //         'node_id': target_node.id,
-                        //         'hook_id': target_hook.id
-                        //
-                        //     },
-                        //
-                        // };
-                        // this.all_edges.push(edge);
                         source_node.draw_links();
 
                         break;
@@ -205,7 +190,6 @@ class GraphCanvas extends fabric.Canvas {
                         source: source_ref[0] + ':' + source_ref[1],
                         target: target_ref[0] + ':' + target_ref[1]
                     };
-                    console.log(edge)
                     edges.push(edge)
                 }
             }
