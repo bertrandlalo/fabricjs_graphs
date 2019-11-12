@@ -15,7 +15,7 @@ class GraphCanvas extends fabric.Canvas {
     constructor(options) {
         super(options);
         this.all_nodes = {};
-        this.all_edges = [];
+        // this.all_edges = [];
         this.floating_endpoint = null;
 
 
@@ -155,20 +155,20 @@ class GraphCanvas extends fabric.Canvas {
                         source_hook.add_link(target_hook);
                         target_hook.add_link(source_hook);
 
-                        let edge = {
-                            'source': {
-                                'node_id': source_node.id,
-                                'hook_id': source_hook.id
-
-                            },
-                            'target': {
-                                'node_id': target_node.id,
-                                'hook_id': target_hook.id
-
-                            },
-
-                        };
-                        this.all_edges.push(edge);
+                        // let edge = {
+                        //     'source': {
+                        //         'node_id': source_node.id,
+                        //         'hook_id': source_hook.id
+                        //
+                        //     },
+                        //     'target': {
+                        //         'node_id': target_node.id,
+                        //         'hook_id': target_hook.id
+                        //
+                        //     },
+                        //
+                        // };
+                        // this.all_edges.push(edge);
                         source_node.draw_links();
 
                         break;
@@ -190,8 +190,29 @@ class GraphCanvas extends fabric.Canvas {
     };
 
     get_edges() {
-        return this.all_edges;
+
+        let edges = [];
+        for (let node_id in this.all_nodes) {
+            let node = this.all_nodes[node_id];
+            let output_hooks = node.hooks.out;
+            for (let i_hook = 0; i_hook < output_hooks.length; i_hook++) {
+                let hook = output_hooks[i_hook];
+                let output_links = hook.links;
+                for (let link_ref in output_links) {
+                    let source_ref = hook.get_ref();
+                    let target_ref = output_links[link_ref].other_hook.get_ref();
+                    let edge = {
+                        source: source_ref[0] + ':' + source_ref[1],
+                        target: target_ref[0] + ':' + target_ref[1]
+                    };
+                    console.log(edge)
+                    edges.push(edge)
+                }
+            }
+        }
+        return edges
     };
+
 
     get_selected_node() {
         var obj = this.getActiveObject();
@@ -201,7 +222,7 @@ class GraphCanvas extends fabric.Canvas {
     get_object() {
         let graph_object = {
                 'nodes': this.all_nodes,
-                'edges': this.all_edges
+                'edges': this.get_edges()
             }
         ;
         console.log(graph_object);
@@ -243,7 +264,7 @@ class GraphCanvas extends fabric.Canvas {
             hook.remove_all_links();
         }
         // Eventually, remove floating endpoint
-        if (this.floating_endpoint && this.floating_endpoint.from_node == node){
+        if (this.floating_endpoint && this.floating_endpoint.from_node == node) {
             this.clear_floating_endpoint()
         }
         // Remove from canvas
@@ -518,7 +539,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         // Draw all links from hooks of this node
         let this_node = this;
         var pt1, pt2;
-        console.log(this.canvas.all_edges);
 
         // draw link to floating endpoint ONLY if floating endpoint is attached to this node
         if (this.canvas.floating_endpoint && this.canvas.floating_endpoint.from_node == this_node) {
