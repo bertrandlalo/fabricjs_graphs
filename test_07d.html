@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>XqNode demo</title>
+    <title>Fabric Nodes demo</title>
     <script src="assets/js/vendor/fabric.js"></script>
     <script src="assets/js/fabric_graphs.js"></script>
     <link rel="stylesheet" href="assets/css/main.css">
@@ -40,8 +40,10 @@
     </div>
 
     <div class="btn-toolbar">
-        <a id="delete-btn" class="btn btn-primary" href="#">Delete</a>
+        <a id="create-btn" class="btn btn-primary" href="#">Create Node</a>
         <a id="clone-btn" class="btn btn-primary" href="#">Duplicate</a>
+
+        <a id="delete-btn" class="btn btn-primary" href="#">Delete</a>
         <a id="export-btn" class="btn btn-primary" href="#">Export Graph</a>
 
     </div>
@@ -202,6 +204,7 @@
                 if (element.getAttribute('name') == 'caption') {
                     // node.setFill(element.value);
                     node.caption_object.set('text', element.value);
+                    node.caption = element.value;
                     node.dirty = true;
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
@@ -220,7 +223,13 @@
                 node.clone();
             }
         });
+        var create_btn = document.getElementById('create-btn');
+        create_btn.addEventListener('click', function (ev) {
+            // Click on create btn
+            // Create new node width default parameters
+            canvas.add_node({})
 
+        });
         var export_btn = document.getElementById('export-btn');
         export_btn.addEventListener('click', function (ev) {
             // Click on export btn
@@ -250,7 +259,7 @@
                     node.clone();
                 }
             }
-            if (ev.key === "Delete" || ev.key == "Backspace") {
+            if (ev.key === "Delete") {
                 ev.preventDefault();
                 // var graph_element = document.getElementById('node-canvas');
                 // var canvas = graph_element.graphApi;

@@ -229,7 +229,7 @@ class GraphCanvas extends fabric.Canvas {
         if (options.id in this.get_nodes()) {
             throw 'Duplicate node id';
         }
-        console.log(options);
+
         let node = new fabric.Node(options);
         // node._graphCanvas = this;
         this.all_nodes[options.id] = node;
@@ -312,10 +312,11 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         let default_options = {
             width: 100,
             height: 100,
-            hooks: [],
+            hooks: [{id: 'in', caption: 'in', io: 'in'}, //todo: remove bullet_options
+                {id: 'out', caption: 'out', io: 'out'}],
             caption: '',
-            fill: 'white',
             // extend options with fabric properties
+            fill: 'white',
             originX: 'left',
             originY: 'top',
             subTargetCheck: true,
@@ -342,7 +343,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         // this.hooks_data = [];
         this.hooks = {in: [], out: []};
         this.hooks_by_id = {};
-
+        console.log(this.options.hooks);
         this.define_hooks(this.options.hooks);
         console.log(this._objects);
 
@@ -755,8 +756,19 @@ class Hook {
         if (this.io === 'in') {
             default_side = 'left'
         }
+        let default_options = {
+            side: default_side,
+            fill: '#444',
+            stroke: '#222',
+            radius: 5,
+            strokeWidth: 1
 
-        this.side = options.side || default_side;
+        };
+        this.options = Object.assign(default_options, options);
+
+        console.log(default_side)
+
+        this.side = this.options.side || default_side;
 
         if (this.side === 'right') {
             this.x = this.node.body.left + this.node.body.width;
@@ -783,11 +795,11 @@ class Hook {
             originY: 'center',
             top: this.y,
             left: this.x,
-            radius: options.radius || 5,
-            fill: options.fill || '#444',
+            radius: this.options.radius,
+            fill: this.options.fill,
             hoverCursor: 'pointer',
-            stroke: options.stroke || '#222',
-            strokeWidth: options.strokeWidth || 1
+            stroke: this.options.stroke,
+            strokeWidth: this.options.strokeWidth
         });
 
         let text = new fabric.Text(this.caption, {
