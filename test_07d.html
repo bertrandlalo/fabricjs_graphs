@@ -124,7 +124,6 @@
                     "caption": "in",
                     "type": "default",
                     "io": "in",
-                    "bullet_options": {"side": "left"}
                 }]
             });
 
@@ -132,9 +131,24 @@
                 id: "out1",
                 caption: "out1 very long",
                 io: "out",
-                bullet_options: {"side": "right"}
             });
-            canvas.add_hook_to_node('#1', {id: "out2", caption: "out2", io: "out", bullet_options: {"side": "right"}});
+            canvas.add_hook_to_node('#1', {id: "out2", caption: "out2", io: "out"});
+
+
+            nn2 = canvas.add_node({
+                caption: 'Princess-node',
+                top: 200,
+                left: 300,
+                hooks: [{
+                    "id": "expects-green",
+                    "caption": "in",
+                    "type": "default",
+                    "expects": ['green'],
+                    "io": "in"
+                }
+
+                ]
+            });
 
 
             // function graph_toObject() {
