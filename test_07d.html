@@ -135,20 +135,55 @@
             canvas.add_hook_to_node('#1', {id: "out2", caption: "out2", io: "out"});
 
 
-            nn2 = canvas.add_node({
+            nn_princess = canvas.add_node({
                 caption: 'Princess-node',
                 top: 200,
                 left: 300,
                 hooks: [{
-                    "id": "expects-green",
-                    "caption": "in",
+                    "id": "in",
+                    "caption": "expects-pink",
                     "type": "default",
                     "expects": ['green'],
-                    "io": "in"
+                    "io": "in",
+                    "bullet_options": {fill: "pink"},
+
                 }
 
                 ]
             });
+            nn_flowers = canvas.add_node({
+                caption: 'Flower-node',
+                top: 200,
+                left: 300,
+                hooks: [{
+                    "id": "out-pink",
+                    "caption": "rose",
+                    "type": "default",
+                    "provides": "pink",
+                    "links_options": {stroke: 'pink'},
+                    "io": "out",
+                    "bullet_options": {fill: "pink"}
+                },
+                    {
+                        "id": "out-red",
+                        "caption": "coquelicot",
+                        "type": "default",
+                        "provides": "pink",
+                        "links_options": {stroke: 'red'},
+                        "io": "out",
+                        "bullet_options": {fill: "red"}
+                    },
+                    {
+                        "id": "out-yellow",
+                        "caption": "begonia",
+                        "type": "default",
+                        "provides": "pink",
+                        "links_options": {stroke: 'yellow'},
+                        "io": "out",
+                        "bullet_options": {fill: "yellow"}
+                    },
+                ]
+            })
 
 
             // function graph_toObject() {

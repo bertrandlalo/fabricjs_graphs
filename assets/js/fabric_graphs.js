@@ -480,7 +480,10 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         let hook = new Hook(options.id, this,
             options.caption,
             options.type,
-            options.io);
+            options.io,
+            options.links_options,
+            options.expects,
+            options.provides);
         // let hook_data = {id: id, caption: hook.caption, type: hook.type, io: hook.io} // TODO: move that to a method 'to_object' in Hook class
         // this.hooks_data.push(hook_data);
         this.hooks_by_id[hook.id] = hook;
@@ -497,18 +500,20 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     },
 
 
-    draw_path: function (pt1, pt2) {
-
-        // draw new one
-        let svg_path = this.make_svg_path(pt1, pt2);
-        let new_path = new fabric.Path(svg_path, {
+    draw_path: function (pt1, pt2, options = {}) {
+        let default_options = {
             fill: null,
-            stroke: 'green',
+            stroke: 'black',
             opacity: 0.5,
             strokeWidth: 2,
             selectable: false,
             hoverCursor: 'default'
-        });
+        };
+        this.path_options = Object.assign(default_options, options);
+
+        // draw new one
+        let svg_path = this.make_svg_path(pt1, pt2);
+        let new_path = new fabric.Path(svg_path, this.path_options);
         this.canvas.add(new_path);
         // new_path.sendToBack();
         return new_path;
@@ -532,7 +537,8 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             if (floating_endpoint.path) {
                 this.canvas.remove(floating_endpoint.path);
             }
-            floating_endpoint.path = this_node.draw_path(pt1, pt2);
+            console.log( source_hook.links_options)
+            floating_endpoint.path = this_node.draw_path(pt1, pt2, source_hook.links_options);
         }
         // Draw edges
 
@@ -552,13 +558,13 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     var other_hook = link.other_hook;
                     var link_from_other_hook = other_hook.links[hook.get_ref()];
                     canvas.remove(link_from_other_hook.path);
-                    link_from_other_hook.path = this_node.draw_path(pt2, pt1);
+                    link_from_other_hook.path = this_node.draw_path(pt2, pt1, hook.links_options);
                 } else {
                     // hook is of type 'out': it holds the path
                     if (link.path) {
                         canvas.remove(link.path);
                     }
-                    link.path = this_node.draw_path(pt1, pt2);
+                    link.path = this_node.draw_path(pt1, pt2, hook.links_options);
                 }
             }
         }
@@ -709,7 +715,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 
 
 class Hook {
-    constructor(id, node, caption = '', type = 'default', io = 'out') {
+    constructor(id, node, caption = '', type = 'default', io = 'out', links_options = {}, provide = null, expects = null) {
         /**
          * @param {Object} [options]
          * @param {string} [options.id] - hook id.
@@ -724,6 +730,10 @@ class Hook {
         this.type = type;
         this.io = io;
         this.links = {};
+        this.links_options = links_options;
+        console.log(this.links_options);
+        this.provide = provide || ['default'];
+        this.expects = expects || 'default';
     }
 
     create_bullet(options) {
@@ -734,19 +744,16 @@ class Hook {
          * @param {string} [options.stroke] - color of stroke
          * @param {string} [options.fill] - color of fill
          */
-        if (this.node.orientation === 'horizontal'){
-            if (this.io === 'in'){
+        if (this.node.orientation === 'horizontal') {
+            if (this.io === 'in') {
                 this.side = 'left'
-            }
-            else {
+            } else {
                 this.side = 'right'
             }
-        }
-        else { // this.orientation === 'horizontal'
-            if (this.io === 'in'){
+        } else { // this.orientation === 'horizontal'
+            if (this.io === 'in') {
                 this.side = 'up'
-            }
-            else {
+            } else {
                 this.side = 'down'
             }
         }
