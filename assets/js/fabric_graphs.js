@@ -315,6 +315,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             hooks: [{id: 'in', caption: 'in', io: 'in'}, //todo: remove bullet_options
                 {id: 'out', caption: 'out', io: 'out'}],
             caption: '',
+            orientation: 'horizontal', // else vertical //TODO: should be a canvas property
             // extend options with fabric properties
             fill: 'white',
             originX: 'left',
@@ -358,14 +359,13 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             // this.body.set('fill', '#fff');
             console.log('selected');
 
-
             var event = new CustomEvent('nodes.selected', {
                 detail: {
                     node: this,
                     id: this.id,
                     caption: this.caption,
                     fill: this.body.fill,
-                    json: JSON.stringify(this.toObject(), null, 2)
+                    json: JSON.stringify(this.to_object(), null, 2)
                 }
             });
             document.dispatchEvent(event);
@@ -481,7 +481,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             options.caption,
             options.type,
             options.io);
-        // let hook_data = {id: id, caption: hook.caption, type: hook.type, io: hook.io} // TODO: move that to a method 'toObject' in Hook class
+        // let hook_data = {id: id, caption: hook.caption, type: hook.type, io: hook.io} // TODO: move that to a method 'to_object' in Hook class
         // this.hooks_data.push(hook_data);
         this.hooks_by_id[hook.id] = hook;
         this.hooks[options.io].push(hook);
@@ -496,12 +496,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         return this.hooks_by_id[hook_id];
     },
 
-    // clean_hook_paths: function(hook) {
-    //     hook.links.forEach(function(link){
-    //         this.canvas.remove(link.path);
-    //     });
-    //     hook.paths = [];
-    // },
 
     draw_path: function (pt1, pt2) {
 
@@ -553,7 +547,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                 var link = hook.links[hook_ref];
                 pt2 = link.other_hook.get_center();
 
-                if (hook.io == 'in') {
+                if (hook.io === 'in') {
                     // hook is of type 'in': find path via other hook
                     var other_hook = link.other_hook;
                     var link_from_other_hook = other_hook.links[hook.get_ref()];
@@ -570,18 +564,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         }
         ;
 
-        // this_node.hooks.out.forEach(function(hook) {
-        //     for (var hook_id in hook.links) {       // hook.links is array with hook_id as keys
-        //         var link = hook.links[hook_id];
-        //         if (link.path) {
-        //             canvas.remove(link.path);
-        //             link.path = null;
-        //         }
-        //         pt1 = hook.get_center();
-        //         pt2 = link.other_hook.get_center();
-        //         link.path = this_node.draw_path(pt1, pt2);
-        //     }
-        // });
     },
 
 
@@ -684,14 +666,14 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         return svg_path;
     },
 
-    toObject: function () {
+    to_object: function () {
         let hooks_data = [];
         for (hook_type in this.hooks) {
             hooks_by_type = this.hooks[hook_type]
             for (var i = 0; i < hooks_by_type.length; i++) {
 
                 hook = hooks_by_type[i];
-                hooks_data.push(hook.toObject())
+                hooks_data.push(hook.to_object())
             }
         }
         return {
@@ -705,7 +687,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     },
 
     clone: function () {
-        let json_obj = this.toObject();
+        let json_obj = this.to_object();
         delete json_obj.id;
         json_obj.left += 50;
         json_obj.top += 50;
@@ -734,6 +716,7 @@ class Hook {
          * @param {fabric.Node} [options.node] - node that this hook belongs to
          * @param {string} [options.caption] - caption to print in front of the hook
          * @param {string} [options.io] - 'in' or 'out', defines if this hook is input or output of its node
+
          */
         this.id = id; //TODO check if unique
         this.node = node;
@@ -746,18 +729,29 @@ class Hook {
     create_bullet(options) {
         /**
          * @param {Object} [options]
-         * @param {string} [options.side] - 'left' or 'right', defines the bullet side.
          * @param {int} [options.radius] -
          * @param {int} [options.strokeWidth] -
          * @param {string} [options.stroke] - color of stroke
          * @param {string} [options.fill] - color of fill
          */
-        let default_side = 'right';
-        if (this.io === 'in') {
-            default_side = 'left'
+        if (this.node.orientation === 'horizontal'){
+            if (this.io === 'in'){
+                this.side = 'left'
+            }
+            else {
+                this.side = 'right'
+            }
         }
+        else { // this.orientation === 'horizontal'
+            if (this.io === 'in'){
+                this.side = 'up'
+            }
+            else {
+                this.side = 'down'
+            }
+        }
+
         let default_options = {
-            side: default_side,
             fill: '#444',
             stroke: '#222',
             radius: 5,
@@ -765,10 +759,6 @@ class Hook {
 
         };
         this.options = Object.assign(default_options, options);
-
-        console.log(default_side)
-
-        this.side = this.options.side || default_side;
 
         if (this.side === 'right') {
             this.x = this.node.body.left + this.node.body.width;
@@ -781,6 +771,7 @@ class Hook {
             this.caption_x = this.x + 12;
             this.caption_y = this.y;
         } else {
+            // TODO: implement orientation===vertical (hence side is up/down)
             throw "Bullet side is erroneous: " + this.side;
         }
         this.node.max_hooks_positions[this.side] += 15; // increment max_hooks_positions
@@ -874,7 +865,7 @@ class Hook {
     }
 
 
-    toObject() {
+    to_object() {
         let hook_object =
             {
                 id: this.id,
