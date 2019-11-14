@@ -743,8 +743,8 @@ class Hook {
         this.links = {};
         this.links_options = links_options;
         console.log(this.links_options);
-        this.provides = provides || 'default';
-        this.expects = expects || ['default'];
+        this.provides = provides;
+        this.expects = expects;
     }
 
     neighborhood(point, radius = 10) {
@@ -755,6 +755,10 @@ class Hook {
     }
 
     allow_connection(hook) {
+        if (!hook.expects) {
+            // if expects is null, it accepts all types
+            return true
+        }
         // We only deal with output connections
         if (this.io === 'out') {
             //  If this is an output hook, check whether `hook` expects type
