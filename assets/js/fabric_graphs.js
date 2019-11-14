@@ -205,7 +205,7 @@ class GraphCanvas extends fabric.Canvas {
 
     get_object() {
         let graph_object = {
-                'nodes': this.all_nodes,
+                'nodes': Object.values(this.all_nodes).map(node => node.to_object()),
                 'edges': this.get_edges()
             }
         ;
@@ -537,7 +537,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             if (floating_endpoint.path) {
                 this.canvas.remove(floating_endpoint.path);
             }
-            console.log( source_hook.links_options)
+            console.log(source_hook.links_options)
             floating_endpoint.path = this_node.draw_path(pt1, pt2, source_hook.links_options);
         }
         // Draw edges
