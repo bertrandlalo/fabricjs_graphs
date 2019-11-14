@@ -143,12 +143,10 @@
                     "id": "in",
                     "caption": "expects-pink",
                     "type": "default",
-                    "expects": ['green'],
+                    "expects": ['pink'],
                     "io": "in",
                     "bullet_options": {fill: "pink"},
-
                 }
-
                 ]
             });
             nn_flowers = canvas.add_node({
@@ -168,7 +166,7 @@
                         "id": "out-red",
                         "caption": "coquelicot",
                         "type": "default",
-                        "provides": "pink",
+                        "provides": "red",
                         "links_options": {stroke: 'red'},
                         "io": "out",
                         "bullet_options": {fill: "red"}
@@ -177,15 +175,13 @@
                         "id": "out-yellow",
                         "caption": "begonia",
                         "type": "default",
-                        "provides": "pink",
+                        "provides": "yellow",
                         "links_options": {stroke: 'yellow'},
                         "io": "out",
                         "bullet_options": {fill: "yellow"}
                     },
                 ]
             })
-
-
             // function graph_toObject() {
             //     let graph = {
             //             'nodes': all_nodes,

@@ -120,46 +120,59 @@ class GraphCanvas extends fabric.Canvas {
 
     };
 
+
     end_point_moved(end_point) {
         // check if connection is done
-        var end_point_center = end_point.getCenterPoint();
+        let end_point_center = end_point.getCenterPoint();
+        let neighbor_found = false;
+        let target_found = false;
 
-        var target_found = false;
 
         for (let node_id in this.all_nodes) {
+            // Loop over all nodes, looking for onee that has a hook that is in
+            // the endpoint's neighborhood
             let node = this.all_nodes[node_id];
 
             for (let h = 0; h < node.hooks.in.length; h++) {
+                // Loop over all input hooks of the current node
                 let target_hook = node.hooks.in[h];
                 let target_hook_center = node.get_hook_center(target_hook);
                 console.log(target_hook_center);
 
-                if (Math.abs(target_hook_center.x - end_point_center.x) < 10
-                    && Math.abs(target_hook_center.y - end_point_center.y) < 10) {
-                    console.log('CONNECT TO ' + node.caption);
-                    target_found = true;
-                    var target_node = node;
-                    var source_node = end_point.from_node;
-                    var source_hook = end_point.from_hook;
-                    var link_already_exists = false;
+                // if (Math.abs(target_hook_center.x - end_point_center.x) < 10
+                //     && Math.abs(target_hook_center.y - end_point_center.y) < 10) {
+                if (target_hook.neighborhood(end_point_center)) {
+                    console.log('END POINT IN' + node.caption + ' NEIGHBORHOOD');
 
+                    neighbor_found = true;
+                    let target_node = node;
+                    let source_node = end_point.from_node;
+                    let source_hook = end_point.from_hook;
 
-                    this.clear_floating_endpoint();
+                    if (source_hook.allow_connection(target_hook)) {
+                        let target_found = true;
+                        let link_already_exists = false;
 
-                    // check that link  from  source_hook to target_hook does not exist already
-                    link_already_exists = (target_hook.get_ref() in source_hook.links);
+                        // Check if hook types are compatible
 
-                    if (!link_already_exists) {
-                        // Create a link from source_hook to target_hook
-                        source_hook.add_link(target_hook);
-                        target_hook.add_link(source_hook);
+                        this.clear_floating_endpoint();
 
-                        source_node.draw_links();
+                        // check that link  from  source_hook to target_hook does not exist already
+                        link_already_exists = (target_hook.get_ref() in source_hook.links);
 
-                        break;
+                        if (!link_already_exists) {
+                            // Create a link from source_hook to target_hook
+                            source_hook.add_link(target_hook);
+                            target_hook.add_link(source_hook);
+
+                            source_node.draw_links();
+
+                            break;
+                        }
+
                     }
-
                 }
+                if (neighbor_found) break;
             }
             if (target_found) break;
         }
@@ -353,10 +366,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 
         // event handlers
         this.on('selected', function (options) {
-            // if (this.body.containsPoint(options.e))
-            //     console.log('AAAAA');
-            // console.log(e.target.top, e.target.left);
-            // this.body.set('fill', '#fff');
             console.log('selected');
 
             var event = new CustomEvent('nodes.selected', {
@@ -477,7 +486,9 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 
         console.log(this);
 
-        let hook = new Hook(options.id, this,
+        let hook = new Hook(
+            options.id,
+            this, // node
             options.caption,
             options.type,
             options.io,
@@ -715,7 +726,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 
 
 class Hook {
-    constructor(id, node, caption = '', type = 'default', io = 'out', links_options = {}, provide = null, expects = null) {
+    constructor(id, node, caption = '', type = 'default', io = 'out', links_options = {}, expects = null, provides = null) {
         /**
          * @param {Object} [options]
          * @param {string} [options.id] - hook id.
@@ -732,8 +743,28 @@ class Hook {
         this.links = {};
         this.links_options = links_options;
         console.log(this.links_options);
-        this.provide = provide || ['default'];
-        this.expects = expects || 'default';
+        this.provides = provides || 'default';
+        this.expects = expects || ['default'];
+    }
+
+    neighborhood(point, radius = 10) {
+        let center = this.get_center();
+
+        return (Math.abs(center.x - point.x) < radius
+            && Math.abs(center.y - point.y) < radius);
+    }
+
+    allow_connection(hook) {
+        // We only deal with output connections
+        if (this.io === 'out') {
+            //  If this is an output hook, check whether `hook` expects type
+            //  than what this hook provides
+            return hook.expects.includes(this.provides)
+        } else {
+            // If this is an input hook
+            return true
+        }
+
     }
 
     create_bullet(options) {
