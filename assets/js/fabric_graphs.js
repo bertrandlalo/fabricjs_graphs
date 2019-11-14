@@ -569,7 +569,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     var other_hook = link.other_hook;
                     var link_from_other_hook = other_hook.links[hook.get_ref()];
                     canvas.remove(link_from_other_hook.path);
-                    link_from_other_hook.path = this_node.draw_path(pt2, pt1, hook.links_options);
+                    link_from_other_hook.path = this_node.draw_path(pt2, pt1, link.other_hook.links_options);
                 } else {
                     // hook is of type 'out': it holds the path
                     if (link.path) {
