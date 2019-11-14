@@ -164,19 +164,15 @@ class GraphCanvas extends fabric.Canvas {
                             // Create a link from source_hook to target_hook
                             source_hook.add_link(target_hook);
                             target_hook.add_link(source_hook);
-
                             source_node.draw_links();
-
                             break;
                         }
-
                     }
                 }
                 if (neighbor_found) break;
             }
             if (target_found) break;
         }
-
     }
 
     get_nodes() {
@@ -227,11 +223,9 @@ class GraphCanvas extends fabric.Canvas {
     };
 
     make_unique_id() {
-
         let i;
         for (i = 1; '#' + i in this.all_nodes; i++) {
         }
-
         return '#' + i;
     };
 
@@ -242,7 +236,9 @@ class GraphCanvas extends fabric.Canvas {
         if (options.id in this.get_nodes()) {
             throw 'Duplicate node id';
         }
-
+        // TODO: set top/left in a quite smart way
+        // eg. if positions (top and left) are not defined
+        // then take the center-weights of nodes centered?
         let node = new fabric.Node(options);
         // node._graphCanvas = this;
         this.all_nodes[options.id] = node;
@@ -467,7 +463,10 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         };
     },
 
-
+    reset_hooks: function () {
+        this.hooks = {in: [], out: []};
+        this.hooks_by_id = {};
+    },
     define_hooks: function (hooks_data) {
         // TODO: hooks_data should rather be a dict with key hook_id
         // this.hooks = hooks;
@@ -696,13 +695,25 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         return {
             id: this.id,
             caption: this.caption,
-            top: this.top,
-            left: this.left,
+            // top: this.top,
+            // left: this.left,
             hooks: hooks_data,
         }
+    },
+    update: function (options) {
+        options = JSON.parse((options));
+        // id => CANNOT be changed, or?? @Pap?
+        // caption
+        if (options.caption) this.caption = options.caption
+        // hooks
+        // if hooks have been change
+        // TODO: be more subtile: delete only connection that have been disturbed
+        Object.values(this.hooks_by_id).map(hook => hook.remove_all_links());
+        // if this node is plugged, remove all connexions
+        this.reset_hooks()
+        this.define_hooks(options.hooks);
 
     },
-
     clone: function () {
         let json_obj = this.to_object();
         delete json_obj.id;
@@ -787,9 +798,9 @@ class Hook {
             }
         } else { // this.orientation === 'horizontal'
             if (this.io === 'in') {
-                this.side = 'up'
+                this.side = 'top'
             } else {
-                this.side = 'down'
+                this.side = 'bottom'
             }
         }
 
@@ -812,8 +823,17 @@ class Hook {
             this.y = this.node.body.top + this.node.max_hooks_positions[this.side]; // -this.body.height / 2 + this.max_hooks_positions[hook.side];
             this.caption_x = this.x + 12;
             this.caption_y = this.y;
+        } else if (this.side === 'top') {
+            this.x = this.node.body.left + this.node.max_hooks_positions[this.side];
+            this.y = this.node.body.top;
+            this.caption_x = this.x;
+            this.caption_y = this.y + 12;
+        } else if (this.side === 'bottom') {
+            this.x = this.node.body.left + this.node.max_hooks_positions[this.side];
+            this.y = this.node.body.top + this.node.height; // -this.body.height / 2 + this.max_hooks_positions[hook.side];
+            this.caption_x = this.x;
+            this.caption_y = this.y - 12;
         } else {
-            // TODO: implement orientation===vertical (hence side is up/down)
             throw "Bullet side is erroneous: " + this.side;
         }
         this.node.max_hooks_positions[this.side] += 15; // increment max_hooks_positions

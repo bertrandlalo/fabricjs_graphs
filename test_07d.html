@@ -35,7 +35,6 @@
                 <label>JSON</label>
                 <textarea name="json"></textarea>
             </div>
-
         </div>
     </div>
 
@@ -63,37 +62,7 @@
         (function (canvas) {
             fabric.Object.prototype.transparentCorners = false;
 
-            // var canvas = this.__canvas = new fabric.Canvas('node-canvas', {
-            //     backgroundColor: '#eee',
-            //     HOVER_CURSOR: 'pointer'
-            // });
-            //
-            // var canvas_element = document.getElementById('node-canvas');
-            //
-            // canvas_element.graphApi = {
-            //     get_nodes: function() {return all_nodes;},
-            //     get_edges: function() {return all_edges;},
-            //     get_canvas: function() {return canvas;},
-            //     get_selected_node: function() {
-            //         var obj = canvas.getActiveObject();
-            //         return obj.type === 'Node' ? obj : null;
-            //         },
-            //     to_objects: graph_toObject
-            // };
-
-
             canvas.selection = false;
-
-            // var all_nodes = {};
-            // var all_edges = [];
-
-
-            function clone_selected_node() {
-                var obj = canvas.getActiveObject();
-                if (obj.type == 'node') {
-                    obj.clone();
-                }
-            }
 
 
             function resize_canvas(ev) {
@@ -181,23 +150,7 @@
                         "bullet_options": {fill: "yellow"}
                     },
                 ]
-            })
-            // function graph_toObject() {
-            //     let graph = {
-            //             'nodes': all_nodes,
-            //             'edges': all_edges
-            //         }
-            //     ;
-            //     console.log(graph);
-            //     return graph;
-            // }
-
-            // toto = graph_toObject;
-
-            // var bullet_a = nn1.get_hook_center('A');
-            // console.log('hook center: ' + bullet_a.x + ', ' + bullet_a.y);
-
-            // draw_all_links();
+            });
 
             nn1JOBJECT = nn1.toObject();
             console.log('nn1 to Object: ', nn1JOBJECT);
@@ -207,9 +160,7 @@
             console.log(nn1JOBJECT);
             nn1COPY = canvas.add_node(nn1JOBJECT);
 
-
         })(canvas);
-
 
         document.addEventListener('nodes.selected', function (ev) {
             console.log('nodes.selected' + ev.detail);
@@ -236,17 +187,20 @@
         if (find_prop_divs.length) {
             var prop_div = find_prop_divs[0];
             prop_div.addEventListener('change', function (ev) {
+
                 var node = prop_div._node;
                 console.log('node: ' + node);
                 var element = ev.target;
-                if (element.getAttribute('name') == 'fill') {
+                console.log(element.value)
+
+                if (element.getAttribute('name') === 'fill') {
                     // node.setFill(element.value);
                     node.body.set('fill', element.value);
                     node.dirty = true;
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
                 }
-                if (element.getAttribute('name') == 'caption') {
+                if (element.getAttribute('name') === 'caption') {
                     // node.setFill(element.value);
                     node.caption_object.set('text', element.value);
                     node.caption = element.value;
@@ -254,6 +208,13 @@
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
                 }
+                if (element.getAttribute('name') === 'json') {
+                    console.log(element.value);
+                    node.update(element.value);
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                }
+
             });
         }
 
