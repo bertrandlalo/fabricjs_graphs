@@ -44,6 +44,11 @@
             display: block;
         }
 
+        .form-group.dimension input {
+            display: inline-block;
+            width: 60px;
+        }
+
         textarea {
             min-height: 120px;
             width: 100%;

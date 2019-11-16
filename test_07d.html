@@ -31,6 +31,11 @@
                 <label>Fill</label>
                 <input type="text" name="fill">
             </div>
+            <div class="form-group dimension">
+                <label>Dimension (w x h)</label>
+                <input type="text" name="width">
+                <input type="text" name="height">
+            </div>
             <div class="form-group">
                 <label>JSON</label>
                 <textarea name="json"></textarea>
@@ -54,9 +59,6 @@
 
     <script id="main">
 
-        var toto;
-
-
         var canvas = new GraphCanvas('node-canvas');
 
         (function (canvas) {
@@ -75,6 +77,18 @@
             window.addEventListener('resize', resize_canvas);
             resize_canvas();
 
+
+            function define_key_listener() {
+                var canvas_holder = canvas.upperCanvasEl;
+                canvas_holder.tabIndex = 1000;
+                canvas_holder.addEventListener('keydown', function(ev) {
+                   console.log('canvas /keydown');
+                   canvas.handle_keydown(ev);
+                });
+            }
+
+            define_key_listener();
+
             /* Take from here: https://stackoverflow.com/questions/24384804/fabric-js-subclassing-fabric-group-error-cannot-read-property-async-of-und
             * Synchronous loaded object
             */
@@ -82,6 +96,8 @@
             //     return new fabric.Node(object);
             // };
 
+
+            // gp1 = canvas.add_path({x: 100, y:100}, {x: 300, y: 200}, {stroke: 'red'});
 
             nn1 = canvas.add_node({
                 id: '#1',
@@ -107,7 +123,9 @@
             nn_princess = canvas.add_node({
                 caption: 'Princess-node',
                 top: 200,
-                left: 300,
+                left: 800,
+                width: 200,
+                height: 200,
                 hooks: [{
                     "id": "in",
                     "caption": "expects-pink",
@@ -119,7 +137,7 @@
                 ]
             });
             nn_flowers = canvas.add_node({
-                caption: 'Flower-node',
+                caption: 'Flower-node very very long',
                 top: 200,
                 left: 300,
                 hooks: [{
@@ -173,11 +191,15 @@
                     var input_id = prop_div.querySelector('input[name=node_id]');
                     var input_caption = prop_div.querySelector('input[name=caption]');
                     var input_fill = prop_div.querySelector('input[name=fill]');
+                    var input_width = prop_div.querySelector('input[name=width]');
+                    var input_height = prop_div.querySelector('input[name=height]');
                     var ta_json = prop_div.querySelector('textarea[name=json]');
 
                     input_id.value = node_properties.id;
                     input_caption.value = node_properties.caption;
                     input_fill.value = node_properties.fill;
+                    input_width.value = node_properties.width;
+                    input_height.value = node_properties.height;
                     ta_json.value = node_properties.json;
                 }
             }
@@ -191,7 +213,7 @@
                 var node = prop_div._node;
                 console.log('node: ' + node);
                 var element = ev.target;
-                console.log(element.value)
+                console.log(element.value);
 
                 if (element.getAttribute('name') === 'fill') {
                     // node.setFill(element.value);
@@ -200,7 +222,7 @@
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
                 }
-                if (element.getAttribute('name') === 'caption') {
+                else if (element.getAttribute('name') === 'caption') {
                     // node.setFill(element.value);
                     node.caption_object.set('text', element.value);
                     node.caption = element.value;
@@ -208,7 +230,21 @@
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
                 }
-                if (element.getAttribute('name') === 'json') {
+                else if (element.getAttribute('name') === 'width') {
+                    console.log(element.value);
+                    node.body.set('width', parseInt(element.value));
+                    node.addWithUpdate();
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                }
+                else if (element.getAttribute('name') === 'height') {
+                    console.log(element.value);
+                    node.body.set('height', parseInt(element.value));
+                    node.addWithUpdate();
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                }
+                else if (element.getAttribute('name') === 'json') {
                     console.log(element.value);
                     node.update(element.value);
                     node.canvas.requestRenderAll();
@@ -255,25 +291,25 @@
         });
 
         window.addEventListener('keydown', function (ev) {
-            console.log(ev.key);
-            if (ev.key == 'd' && ev.ctrlKey) {
-                ev.preventDefault();
-                // var graph_element = document.getElementById('node-canvas');
-                // var canvas = graph_element.graphApi;
-                var node = canvas.get_selected_node();
-                if (node) {
-                    node.clone();
-                }
-            }
-            if (ev.key === "Delete") {
-                ev.preventDefault();
-                // var graph_element = document.getElementById('node-canvas');
-                // var canvas = graph_element.graphApi;
-                let node = canvas.get_selected_node();
-                if (node) {
-                    canvas.remove_node(node);
-                }
-            }
+            // console.log(ev.key);
+            // if (ev.key == 'd' && ev.ctrlKey) {
+            //     ev.preventDefault();
+            //     // var graph_element = document.getElementById('node-canvas');
+            //     // var canvas = graph_element.graphApi;
+            //     var node = canvas.get_selected_node();
+            //     if (node) {
+            //         node.clone();
+            //     }
+            // }
+            // if (ev.key === "Delete") {
+            //     ev.preventDefault();
+            //     // var graph_element = document.getElementById('node-canvas');
+            //     // var canvas = graph_element.graphApi;
+            //     let node = canvas.get_selected_node();
+            //     if (node) {
+            //         canvas.remove_node(node);
+            //     }
+            // }
 
         });
 

@@ -84,6 +84,13 @@ class GraphCanvas extends fabric.Canvas {
         });
 
 
+        this.on('object:selected', function(options) {
+           console.log('object:selected ' + options.target.type);
+           if (options.target.type === 'path') {
+               options.target.set('strokeWidth', 4);
+           }
+        });
+
         this.on('mouse:wheel', function (opt) {
             var delta = opt.e.deltaY;
             var zoom = this.getZoom();
@@ -119,6 +126,30 @@ class GraphCanvas extends fabric.Canvas {
         });
 
     };
+
+
+    handle_keydown(ev) {
+
+        var selected_node = this.get_selected_node();
+
+        console.log('handle_keydown ' + ev.key  + ' on ' + (selected_node ? selected_node.name : 'none') );
+
+        if (selected_node) {
+            if (ev.key === 'd' && ev.ctrlKey) {
+                ev.preventDefault();
+                // var graph_element = document.getElementById('node-canvas');
+                // var canvas = graph_element.graphApi;
+                selected_node.clone();
+            }
+
+            else if (ev.key === "Delete") {
+                ev.preventDefault();
+                // var graph_element = document.getElementById('node-canvas');
+                // var canvas = graph_element.graphApi;
+                canvas.remove_node(selected_node);
+            }
+        }
+    }
 
 
     end_point_moved(end_point) {
@@ -209,7 +240,7 @@ class GraphCanvas extends fabric.Canvas {
 
     get_selected_node() {
         var obj = this.getActiveObject();
-        return obj.type === 'Node' ? obj : null;
+        return typeof obj !== 'undefined' && obj.type === 'Node' ? obj : null;
     };
 
     get_object() {
@@ -262,8 +293,6 @@ class GraphCanvas extends fabric.Canvas {
         }
         // Remove from canvas
         this.remove(node)
-
-
     };
 
     add_hook_to_node(node_id, hook_data) {
@@ -292,7 +321,23 @@ class GraphCanvas extends fabric.Canvas {
 
     delete_edge(source_hook, target_hook) {
 
-    }
+    };
+
+    add_path(pt1, pt2, options) {
+
+        let graph_path = new fabric.GraphPath(pt1, pt2, options);
+        this.add(graph_path);
+        return graph_path;
+    };
+
+
+    remove_path(graph_path) {
+        this.remove(graph_path)
+    };
+
+
+
+
 
 }
 
@@ -319,8 +364,8 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
          * @param {int} [options.width] - node's body width
          */
         let default_options = {
-            width: 100,
-            height: 100,
+            width: 150,
+            height: 150,
             hooks: [{id: 'in', caption: 'in', io: 'in'}, //todo: remove bullet_options
                 {id: 'out', caption: 'out', io: 'out'}],
             caption: '',
@@ -370,6 +415,8 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     id: this.id,
                     caption: this.caption,
                     fill: this.body.fill,
+                    width: this.body.width,
+                    height: this.body.height,
                     json: JSON.stringify(this.to_object(), null, 2)
                 }
             });
@@ -414,8 +461,8 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             originY: 'top',
             top: 0,
             left: 0,
-            width: 150,
-            height: 150,
+            width: this.width,
+            height: this.height,
             rx: 4,
             ry: 4,
             fill: this.options.fill,
@@ -436,11 +483,19 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                 fontStyle: 'bold',
                 top: this.body.height / 3,
                 left: this.body.width / 2,
+                width: this.body.width - 10,
                 fill: 'red',
                 stroke: null
             }
         );
         this.add(this.caption_object);
+
+        // Truncate caption text if necessary
+        // TODO: also truncate later when caption is changed OR when width is changed
+        console.log("caption width: " + this.caption_object.width);
+        while(this.caption_object.width > this.body.width - 10) {
+            this.caption_object.set('text', this.caption_object.text.slice(0, -1));
+        }
     },
 
     get_hook_center: function (hook_arg) {
@@ -510,28 +565,11 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     },
 
 
-    draw_path: function (pt1, pt2, options = {}) {
-        let default_options = {
-            fill: null,
-            stroke: 'black',
-            opacity: 0.5,
-            strokeWidth: 2,
-            selectable: false,
-            hoverCursor: 'default'
-        };
-        this.path_options = Object.assign(default_options, options);
-
-        // draw new one
-        let svg_path = this.make_svg_path(pt1, pt2);
-        let new_path = new fabric.Path(svg_path, this.path_options);
-        this.canvas.add(new_path);
-        // new_path.sendToBack();
-        return new_path;
-    },
-
     draw_links: function () {
         // Draw all links from hooks of this node
         let this_node = this;
+        var canvas = this_node.canvas;
+
         var pt1, pt2;
 
         // draw link to floating endpoint ONLY if floating endpoint is attached to this node
@@ -548,11 +586,10 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                 this.canvas.remove(floating_endpoint.path);
             }
             console.log(source_hook.links_options)
-            floating_endpoint.path = this_node.draw_path(pt1, pt2, source_hook.links_options);
+            // floating_endpoint.path = this_node.draw_path(pt1, pt2, source_hook.links_options);
+            floating_endpoint.path = canvas.add_path(pt1, pt2);
         }
         // Draw edges
-
-        var canvas = this_node.canvas;
 
         for (var hook_id in this_node.hooks_by_id) {
             var hook = this_node.hooks_by_id[hook_id];
@@ -567,19 +604,20 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     // hook is of type 'in': find path via other hook
                     var other_hook = link.other_hook;
                     var link_from_other_hook = other_hook.links[hook.get_ref()];
-                    canvas.remove(link_from_other_hook.path);
-                    link_from_other_hook.path = this_node.draw_path(pt2, pt1, link.other_hook.links_options);
+                    // canvas.remove(link_from_other_hook.path);
+                    // link_from_other_hook.path = this_node.draw_path(pt2, pt1, link.other_hook.links_options);
+                    canvas.remove_path(link_from_other_hook.path);
+                    link_from_other_hook.path = canvas.add_path(pt2, pt1);
                 } else {
                     // hook is of type 'out': it holds the path
                     if (link.path) {
-                        canvas.remove(link.path);
+                        canvas.remove_path(link.path);
                     }
-                    link.path = this_node.draw_path(pt1, pt2, hook.links_options);
+                    // link.path = this_node.draw_path(pt1, pt2, hook.links_options);
+                    link.path = canvas.add_path(pt1, pt2);
                 }
             }
         }
-        ;
-
     },
 
 
@@ -657,31 +695,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     },
 
 
-    make_svg_path: function (pt1, pt2) {
-        var v = 0, d = 0, min_d, max_d, xd, yd, svg_path;
-
-        xd = Math.abs(pt2.x - pt1.x);
-        yd = Math.abs(pt2.y - pt1.y);
-
-        d = xd * 0.8;
-
-        min_d = xd + yd;
-        max_d = 100;
-
-        d = Math.min(Math.max(d, min_d), max_d);
-
-        // if endpoint is almost on same vertical position as startpoint, then tweak points so that path is not flat
-        if (pt2.x < pt1.x && Math.abs(pt2.y - pt1.y) < 30) {
-            v = (30 - Math.abs(pt2.y - pt1.y)) * (pt2.y > pt1.y ? -1 : -1);
-        }
-
-        svg_path = 'M ' + pt1.x + ' ' + pt1.y
-            + ' C ' + (pt1.x + d) + ' ' + (pt1.y + v) + ' ' + (pt2.x - d) + ' ' + (pt2.y + v) + ' ' + pt2.x + ' ' + pt2.y;
-
-        // console.log(svg_path);
-        return svg_path;
-    },
-
     to_object: function () {
         let hooks_data = [];
         for (hook_type in this.hooks) {
@@ -700,6 +713,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             hooks: hooks_data,
         }
     },
+
     update: function (options) {
         options = JSON.parse((options));
         // id => CANNOT be changed, or?? @Pap?
@@ -941,3 +955,80 @@ class Hook {
 };
 
 
+fabric.GraphPath = fabric.util.createClass(fabric.Path, {
+    type: 'GraphPath',
+    initialize: function (pt1, pt2, options) {
+        /**
+         * @param pt1   Origin point
+         * @param pt2   Destination point
+         * @param options
+         */
+
+        let default_options = {
+            fill: null,
+            stroke: 'black',
+            opacity: 0.5,
+            strokeWidth: 2,
+            selectable: true,
+            hoverCursor: 'default',
+            hasControls: false,
+            hasBorders: false,
+            perPixelTargetFind: true,
+            targetFindTolerance: 8,
+            lockMovementX: true,
+            lockMovementY: true
+        };
+        this.options = Object.assign(default_options, options);
+
+        // draw new one
+        let svg_path = this.make_svg_path(pt1, pt2);
+        // let new_path = new fabric.Path(svg_path, this.path_options);
+
+
+        // calls the parent's constructor
+        this.callSuper('initialize', svg_path, this.options);
+
+
+        // event handlers
+        this.on('selected', function (options) {
+            this.set('strokeWidth', 5);
+            console.log('selected');
+
+        });
+
+        this.on('deselected', function (options) {
+            this.set('strokeWidth', this.options.strokeWidth);
+            console.log('deselected');
+        });
+
+    },
+
+
+    make_svg_path: function (pt1, pt2) {
+        var v = 0, d = 0, min_d, max_d, xd, yd, svg_path;
+
+        xd = Math.abs(pt2.x - pt1.x);
+        yd = Math.abs(pt2.y - pt1.y);
+
+        d = xd * 0.8;
+
+        min_d = xd + yd;
+        max_d = 100;
+
+        d = Math.min(Math.max(d, min_d), max_d);
+
+        // if endpoint is almost on same vertical position as startpoint, then tweak points so that path is not flat
+        if (pt2.x < pt1.x && Math.abs(pt2.y - pt1.y) < 30) {
+            v = (30 - Math.abs(pt2.y - pt1.y)) * (pt2.y > pt1.y ? -1 : -1);
+        }
+
+        svg_path = 'M ' + pt1.x + ' ' + pt1.y
+            + ' C ' + (pt1.x + d) + ' ' + (pt1.y + v) + ' ' + (pt2.x - d) + ' ' + (pt2.y + v) + ' ' + pt2.x + ' ' + pt2.y;
+
+        // console.log(svg_path);
+        return svg_path;
+    }
+
+
+
+});
