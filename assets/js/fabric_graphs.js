@@ -130,24 +130,46 @@ class GraphCanvas extends fabric.Canvas {
 
     handle_keydown(ev) {
 
-        var selected_node = this.get_selected_node();
+        var obj = this.getActiveObject();
+        var selected_node = typeof obj  && obj.type === 'Node' ? obj : null;
+        var selected_graph_path = typeof obj && obj.type === 'GraphPath' ? obj : null;
 
         console.log('handle_keydown ' + ev.key  + ' on ' + (selected_node ? selected_node.name : 'none') );
 
         if (selected_node) {
             if (ev.key === 'd' && ev.ctrlKey) {
+                // Duplicate Node
                 ev.preventDefault();
-                // var graph_element = document.getElementById('node-canvas');
-                // var canvas = graph_element.graphApi;
                 selected_node.clone();
             }
 
             else if (ev.key === "Delete") {
+                // Delete Node
                 ev.preventDefault();
-                // var graph_element = document.getElementById('node-canvas');
-                // var canvas = graph_element.graphApi;
                 canvas.remove_node(selected_node);
             }
+        }
+
+        if (selected_graph_path) {
+            // Selected object is a GraphPath
+            if (ev.key === "Delete") {
+                // Delete GraphPath
+                ev.preventDefault();
+                canvas.remove_path(selected_graph_path);
+                var link = selected_graph_path.link || null;
+                if (link) {
+                    // Remove link from source hook
+                    var source_hook = link.this_hook;
+                    var other_hook_ref = link.other_hook.get_ref();
+                    // Remove link from target hook
+                    var target_hook = link.other_hook;
+                    var this_hook_ref = link.this_hook.get_ref();
+
+                    delete source_hook.links[other_hook_ref];
+                    delete target_hook.links[this_hook_ref];
+                }
+            }
+
         }
     }
 
@@ -160,7 +182,7 @@ class GraphCanvas extends fabric.Canvas {
 
 
         for (let node_id in this.all_nodes) {
-            // Loop over all nodes, looking for onee that has a hook that is in
+            // Loop over all nodes, looking for one that has a hook that is in
             // the endpoint's neighborhood
             let node = this.all_nodes[node_id];
 
@@ -323,9 +345,9 @@ class GraphCanvas extends fabric.Canvas {
 
     };
 
-    add_path(pt1, pt2, options) {
+    add_path(pt1, pt2, link, options) {
 
-        let graph_path = new fabric.GraphPath(pt1, pt2, options);
+        let graph_path = new fabric.GraphPath(pt1, pt2, link, options);
         this.add(graph_path);
         return graph_path;
     };
@@ -607,14 +629,14 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     // canvas.remove(link_from_other_hook.path);
                     // link_from_other_hook.path = this_node.draw_path(pt2, pt1, link.other_hook.links_options);
                     canvas.remove_path(link_from_other_hook.path);
-                    link_from_other_hook.path = canvas.add_path(pt2, pt1);
+                    link_from_other_hook.path = canvas.add_path(pt2, pt1, link);
                 } else {
                     // hook is of type 'out': it holds the path
                     if (link.path) {
                         canvas.remove_path(link.path);
                     }
                     // link.path = this_node.draw_path(pt1, pt2, hook.links_options);
-                    link.path = canvas.add_path(pt1, pt2);
+                    link.path = canvas.add_path(pt1, pt2, link);
                 }
             }
         }
@@ -631,6 +653,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             // user has clicked on one object from Node 's objects
             let inner_target = option.subTargets[0];
             if (inner_target.type === 'hook-bullet') {
+                // this object was indeed a hook bullet
 
                 let hook_bullet = inner_target;
                 let hook = hook_bullet.hook;
@@ -650,7 +673,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 
                 } else {
                     // Click without Ctrl key pressed:  create floating endpoint
-                    // this object was indeed a hook bullet
                     console.log(inner_target);
                     let end_point;
                     if (hook.io === 'out') {
@@ -904,6 +926,7 @@ class Hook {
             this.remove_link(other_hook);
         }
         this.links[other_hook_ref] = {
+            this_hook: this,
             other_hook: other_hook,
             path: null
         };
@@ -957,14 +980,16 @@ class Hook {
 
 fabric.GraphPath = fabric.util.createClass(fabric.Path, {
     type: 'GraphPath',
-    initialize: function (pt1, pt2, options) {
+    initialize: function (pt1, pt2, link, options) {
         /**
          * @param pt1   Origin point
          * @param pt2   Destination point
+         * @param link  The link object to which this path relates (optional)
          * @param options
          */
 
         let default_options = {
+            link: typeof link !== 'undefined' ? link : null,
             fill: null,
             stroke: 'black',
             opacity: 0.5,
@@ -974,7 +999,7 @@ fabric.GraphPath = fabric.util.createClass(fabric.Path, {
             hasControls: false,
             hasBorders: false,
             perPixelTargetFind: true,
-            targetFindTolerance: 8,
+            targetFindTolerance: 12,
             lockMovementX: true,
             lockMovementY: true
         };
@@ -991,13 +1016,18 @@ fabric.GraphPath = fabric.util.createClass(fabric.Path, {
 
         // event handlers
         this.on('selected', function (options) {
-            this.set('strokeWidth', 5);
-            console.log('selected');
-
+            if (this.link) {
+                // If it represents an actual link (not a path to floating endpoint)
+                // otherwise there is no need to select
+                // this.set('strokeWidth', 5);
+                this.set('shadow', {color: 'rgba(0,0,0,1)', offsetX: 0, offsetY: 0, blur: 4});
+                console.log('selected');
+            }
         });
 
         this.on('deselected', function (options) {
-            this.set('strokeWidth', this.options.strokeWidth);
+            // this.set('strokeWidth', this.options.strokeWidth);
+            this.set('shadow', null);
             console.log('deselected');
         });
 
