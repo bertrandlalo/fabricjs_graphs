@@ -693,7 +693,8 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                             top: pt1.y + 5,
                             left: pt1.x + 25,
                             radius: 5,
-                            fill: 'red',
+                            fill: hook.bullet.fill,
+                            stroke: hook.bullet.stroke,
                             hasControls: false,
                             hasBorders: false,
                             from_hook: hook,
@@ -730,8 +731,10 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         return {
             id: this.id,
             caption: this.caption,
-            // top: this.top,
-            // left: this.left,
+            top: this.top,
+            left: this.left,
+            width: this.body.width,
+            height: this.body.height,
             hooks: hooks_data,
         }
     },
@@ -755,11 +758,9 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         delete json_obj.id;
         json_obj.left += 50;
         json_obj.top += 50;
-        // var new_node = new fabric.Node(json_obj);
         console.log(json_obj);
         new_node = this.canvas.add_node(json_obj);
-        // t.add(new_node);
-        this.canvas.setActiveObject(new_node); //TODO: why this? @Pap.
+        this.canvas.setActiveObject(new_node); //New object becomes the selected object
     }
     ,
 
