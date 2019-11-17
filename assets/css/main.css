@@ -68,10 +68,12 @@
         }
 
         .btn {
+            font-size: 14px;
             text-transform: uppercase;
             text-decoration: none;
             text-align: center;
             padding: 4px 12px;
+            border-radius: 2px;
         }
 
         .btn-primary {

@@ -846,8 +846,8 @@ class Hook {
             stroke: '#222',
             radius: 5,
             strokeWidth: 1
-
         };
+
         this.options = Object.assign(default_options, options);
 
         if (this.side === 'right') {
@@ -971,7 +971,11 @@ class Hook {
                 id: this.id,
                 caption: this.caption,
                 type: this.type,
-                io: this.io
+                provides: this.provides,
+                links_options: this.links_options,
+                io: this.io,
+                bullet_options: this.bullet_options
+
             };
         return hook_object
 

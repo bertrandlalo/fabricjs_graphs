@@ -5,6 +5,7 @@
     <title>Fabric Nodes demo</title>
     <script src="assets/js/vendor/fabric.js"></script>
     <script src="assets/js/fabric_graphs.js"></script>
+    <script src="assets/js/fabric_questions.js"></script>
     <link rel="stylesheet" href="assets/css/main.css">
 </head>
 <body>
@@ -98,6 +99,15 @@
 
 
             // gp1 = canvas.add_path({x: 100, y:100}, {x: 300, y: 200}, {stroke: 'red'});
+
+            var question_obj = {
+
+            }
+
+            var q01 = new fabric.QuestionNode();
+
+            canvas.add(q01);
+
 
             nn1 = canvas.add_node({
                 id: '#1',
