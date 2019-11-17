@@ -323,10 +323,13 @@ class GraphCanvas extends fabric.Canvas {
 
     draw_all_links() {
         for (let node_id in this.all_nodes) {
-            console.log(this.all_nodes[node_id])
+            console.log(this.all_nodes[node_id]);
             this.all_nodes[node_id].draw_links();
         }
-        // this.all_nodes.map(obj => obj.draw_links())
+        if (this.floating_endpoint) {
+            this.floating_endpoint.bringToFront();
+        }
+
     };
 
     clear_floating_endpoint() {
@@ -603,9 +606,10 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             if (floating_endpoint.path) {
                 this.canvas.remove(floating_endpoint.path);
             }
-            console.log(source_hook.links_options)
+            console.log(source_hook.links_options);
             // floating_endpoint.path = this_node.draw_path(pt1, pt2, source_hook.links_options);
             floating_endpoint.path = canvas.add_path(pt1, pt2);
+            floating_endpoint.bringToFront();
         }
         // Draw edges
 
@@ -655,14 +659,19 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                 let hook = hook_bullet.hook;
 
                 if (option.e && option.e.ctrlKey === true) {
+                    // Ctrl-Click on bullet:  Delete all links
                     console.log('CONTROL CLICK ON BULLET');
                     // Ctrl-Click on bullet means remove all links
                     for (var hook_ref in hook.links) {       // hook.links is array with hook_ref as keys
-                        var link = hook.links[hook_ref];
-                        if (link.path) {
-                            canvas.remove(link.path);
-                        }
+                        let link = hook.links[hook_ref];
                         let other_hook = link.other_hook;
+                        if (link.path) {
+                            // link is outbound: it holds the path
+                            canvas.remove(link.path);
+                        } else {
+                            // link must be inbound: the other end of the link holds the path
+                            canvas.remove(other_hook.links[hook.get_ref()].path);
+                        }
                         delete hook.links[hook_ref];
                         delete other_hook.links[hook.get_ref()];
                     }
