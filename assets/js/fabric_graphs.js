@@ -84,11 +84,11 @@ class GraphCanvas extends fabric.Canvas {
         });
 
 
-        this.on('object:selected', function(options) {
-           console.log('object:selected ' + options.target.type);
-           if (options.target.type === 'path') {
-               options.target.set('strokeWidth', 4);
-           }
+        this.on('object:selected', function (options) {
+            console.log('object:selected ' + options.target.type);
+            if (options.target.type === 'path') {
+                options.target.set('strokeWidth', 4);
+            }
         });
 
         this.on('mouse:wheel', function (opt) {
@@ -131,19 +131,17 @@ class GraphCanvas extends fabric.Canvas {
     handle_keydown(ev) {
 
         var obj = this.getActiveObject();
-        var selected_node = typeof obj  && obj.type === 'Node' ? obj : null;
+        var selected_node = typeof obj && obj.type === 'Node' ? obj : null;
         var selected_graph_path = typeof obj && obj.type === 'GraphPath' ? obj : null;
 
-        console.log('handle_keydown ' + ev.key  + ' on ' + (selected_node ? selected_node.name : 'none') );
+        console.log('handle_keydown ' + ev.key + ' on ' + (selected_node ? selected_node.name : 'none'));
 
         if (selected_node) {
             if (ev.key === 'd' && ev.ctrlKey) {
                 // Duplicate Node
                 ev.preventDefault();
                 selected_node.clone();
-            }
-
-            else if (ev.key === "Delete") {
+            } else if (ev.key === "Delete") {
                 // Delete Node
                 ev.preventDefault();
                 canvas.remove_node(selected_node);
@@ -358,9 +356,6 @@ class GraphCanvas extends fabric.Canvas {
     };
 
 
-
-
-
 }
 
 
@@ -515,7 +510,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         // Truncate caption text if necessary
         // TODO: also truncate later when caption is changed OR when width is changed
         console.log("caption width: " + this.caption_object.width);
-        while(this.caption_object.width > this.body.width - 10) {
+        while (this.caption_object.width > this.body.width - 10) {
             this.caption_object.set('text', this.caption_object.text.slice(0, -1));
         }
     },
@@ -541,6 +536,8 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     },
 
     reset_hooks: function () {
+        // TODO: be more subtile: delete only connection that have been disturbed
+        Object.values(this.hooks_by_id).map(hook => hook.remove_from_canvas());
         this.hooks = {in: [], out: []};
         this.hooks_by_id = {};
     },
@@ -576,7 +573,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         this.hooks_by_id[hook.id] = hook;
         this.hooks[options.io].push(hook);
         hook.create_bullet(options.bullet_options);
-
     },
 
     get_hook_by_id: function (hook_id) {
@@ -746,10 +742,9 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         if (options.caption) this.caption = options.caption
         // hooks
         // if hooks have been change
-        // TODO: be more subtile: delete only connection that have been disturbed
-        Object.values(this.hooks_by_id).map(hook => hook.remove_all_links());
+
         // if this node is plugged, remove all connexions
-        this.reset_hooks()
+        this.reset_hooks();
         this.define_hooks(options.hooks);
 
     },
@@ -892,7 +887,7 @@ class Hook {
             strokeWidth: this.options.strokeWidth
         });
 
-        let text = new fabric.Text(this.caption, {
+        this.text = new fabric.Text(this.caption, {
             name: 'hook-caption',
             type: 'hook-caption',
             fontFamily: 'Arial', fontSize: 10, fill: '#222', fontStyle: 'normal',
@@ -902,8 +897,8 @@ class Hook {
             width: 20, height: 20
         });
 
-        this.node.add(text);
-        text.setCoords();
+        this.node.add(this.text);
+        this.text.setCoords();
 
         this.node.add(this.bullet);
         this.bullet.setCoords();
@@ -913,6 +908,13 @@ class Hook {
 
         console.log("add_hook: " + this.node._objects);
         console.log(this.node.hooks_by_id);
+
+    }
+
+    remove_from_canvas() {
+        this.remove_all_links();
+        this.node.remove(this.text);
+        this.node.remove(this.bullet);
 
     }
 
@@ -971,7 +973,10 @@ class Hook {
                 id: this.id,
                 caption: this.caption,
                 type: this.type,
-                io: this.io
+                io: this.io,
+                provides: this.provides,
+                links_options: this.links_options,
+                bullet_options: this.options
             };
         return hook_object
 
@@ -1059,7 +1064,6 @@ fabric.GraphPath = fabric.util.createClass(fabric.Path, {
         // console.log(svg_path);
         return svg_path;
     }
-
 
 
 });
