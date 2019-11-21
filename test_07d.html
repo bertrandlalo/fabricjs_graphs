@@ -59,7 +59,29 @@
 
     <script id="main">
 
-        var canvas = new GraphCanvas('node-canvas');
+
+        var hook_types = {
+            "in": {
+                "id": "in",
+                "caption": "in",
+                "io": "in",
+                "color": "red",
+                "expects": "red"
+            },
+            "answer": {
+                "caption": "",
+                "io": "out",
+                "color": "red",
+                "provides": "red"
+            }
+        };
+
+        var graph_canvas_options = {
+            hook_types: hook_types
+        };
+
+
+        var canvas = new GraphCanvas('node-canvas', graph_canvas_options);
 
         (function (canvas) {
             fabric.Object.prototype.transparentCorners = false;
@@ -82,8 +104,8 @@
                 var canvas_holder = canvas.upperCanvasEl;
                 canvas_holder.tabIndex = 1000;
                 canvas_holder.addEventListener('keydown', function(ev) {
-                   console.log('canvas /keydown');
-                   canvas.handle_keydown(ev);
+                    console.log('canvas /keydown');
+                    canvas.handle_keydown(ev);
                 });
             }
 
@@ -99,18 +121,16 @@
 
             // gp1 = canvas.add_path({x: 100, y:100}, {x: 300, y: 200}, {stroke: 'red'});
 
-            nn1 = canvas.add_node({
-                id: '#1',
-                caption: 'Node-1',
-                top: 150,
-                left: 250,
-                hooks: [{
-                    "id": "in",
-                    "caption": "in",
-                    "type": "default",
-                    "io": "in",
-                }]
-            });
+            var nn1 = canvas.add_node(
+                {
+                    id: '#1',
+                    caption: 'Node-1',
+                    top: 150,
+                    left: 250,
+                    hooks: [{
+                        "type": "in"
+                    }]
+                });
 
             canvas.add_hook_to_node('#1', {
                 id: "out1",
@@ -120,27 +140,43 @@
             canvas.add_hook_to_node('#1', {id: "out2", caption: "out2", io: "out"});
 
 
-            nn_princess = canvas.add_node({
-                caption: 'Princess-node',
-                top: 200,
-                left: 800,
-                width: 200,
-                height: 200,
-                hooks: [{
-                    "id": "in",
-                    "caption": "expects-pink",
-                    "type": "default",
-                    "expects": ['pink'],
-                    "io": "in",
-                    "bullet_options": {fill: "pink"},
-                }
-                ]
-            });
-            nn_flowers = canvas.add_node({
+            var nn_princess = canvas.add_node(
+                {
+                    caption: 'Princess-node',
+                    top: 200,
+                    left: 800,
+                    width: 200,
+                    height: 200,
+                    hooks: [
+                        {
+                            "type": "in",
+                        },
+                        {
+                            "id": "A",
+                            "type": "answer",
+                            "caption": "A"
+                        },
+                        {
+                            "id": "B",
+                            "type": "answer",
+                            "caption": "B"
+                        },
+                        {
+                            "id": "C",
+                            "type": "answer",
+                            "caption": "C"
+                        }
+                    ]
+                });
+
+            var nn_flowers = canvas.add_node({
                 caption: 'Flower-node very very long',
                 top: 200,
                 left: 300,
                 hooks: [
+                    {
+                        "type": "in",
+                    },
                     {
                         "id": "out-pink",
                         "caption": "rose",
@@ -171,7 +207,7 @@
                 ]
             });
 
-            nn1JOBJECT = nn1.toObject();
+            var nn1JOBJECT = nn1.toObject();
             console.log('nn1 to Object: ', nn1JOBJECT);
             // update id
             nn1JOBJECT.caption = nn1JOBJECT.caption + 'COPY';

@@ -12,10 +12,12 @@
  */
 
 class GraphCanvas extends fabric.Canvas {
-    constructor(options) {
-        super(options);
+    constructor(container_id, options) {
+        super(container_id);
         this.all_nodes = {};
         this.floating_endpoint = null;
+
+        this.hook_types = options.hook_types;
 
 
         //////////////
@@ -131,6 +133,10 @@ class GraphCanvas extends fabric.Canvas {
     handle_keydown(ev) {
 
         var obj = this.getActiveObject();
+
+        if (!obj)
+            return;
+
         var selected_node = typeof obj && obj.type === 'Node' ? obj : null;
         var selected_graph_path = typeof obj && obj.type === 'GraphPath' ? obj : null;
 
@@ -290,7 +296,7 @@ class GraphCanvas extends fabric.Canvas {
         // TODO: set top/left in a quite smart way
         // eg. if positions (top and left) are not defined
         // then take the center-weights of nodes centered?
-        let node = new fabric.Node(options);
+        let node = new fabric.Node(canvas, options);
         // node._graphCanvas = this;
         this.all_nodes[options.id] = node;
         // Add node to canvas
@@ -377,7 +383,7 @@ class GraphCanvas extends fabric.Canvas {
 
 fabric.Node = fabric.util.createClass(fabric.Group, {
     type: 'Node',
-    initialize: function (options) {
+    initialize: function (canvas, options) {
         /**
          * @param {Object} [options]
          * @param {string} [options.id] - node's id
@@ -403,6 +409,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             cornerSize: 0,
 
         };
+        this.canvas = canvas;
         this.options = Object.assign(default_options, options);
 
         this.id = this.options.id;
@@ -562,6 +569,16 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 
         console.log(this);
 
+        if (options.type && this.canvas.hook_types && options.type in this.canvas.hook_types) {
+            var hook_type_options = this.canvas.hook_types[options.type];
+            options.io = options.io || hook_type_options.io;
+            options.expects = options.expects || hook_type_options.expects;
+            options.provides = options.provides || hook_type_options.provides;
+            options.links_options = options.links_options || hook_type_options.links_options;
+            options.bullet_options = options.bullet_options || hook_type_options.bullet_options;
+            options.bullet_options.fill = hook_type_options.color;
+        }
+
         let hook = new Hook(
             options.id,
             this, // node
@@ -573,7 +590,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             options.provides);
         // let hook_data = {id: id, caption: hook.caption, type: hook.type, io: hook.io} // TODO: move that to a method 'to_object' in Hook class
         // this.hooks_data.push(hook_data);
-        this.hooks_by_id[hook.id] = hook;
+        this.   hooks_by_id[hook.id] = hook;
         this.hooks[options.io].push(hook);
         hook.create_bullet(options.bullet_options);
     },
@@ -837,7 +854,7 @@ class Hook {
             } else {
                 this.side = 'right'
             }
-        } else { // this.orientation === 'horizontal'
+        } else { // this.orientation === 'vertical'
             if (this.io === 'in') {
                 this.side = 'top'
             } else {

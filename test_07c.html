@@ -621,77 +621,78 @@
             };
 
 
-            var nn1 = new fabric.Node({
-                id: '#34',
-                caption: '#34',
-                text: 'De quelle couleur sont les tomates ?',
-                top: 150,
-                left: 150,
-                fill: '#eee',
-                hooks_data: [
-                    {
-                        "id": "in",
-                        "caption": "in",
-                        "type": "default",
-                        "in": true,
-                        "out": false,
-                        "side": "left",
-                        "align": "top",
-                        "fill": "#888",
-                        "size": 6
-                    },
-                    {
-                        "id": "A",
-                        "caption": "A",
-                        "type": "default",
-                        "in": false,
-                        "out": true,
-                        "side": "right",
-                        "align": "top",
-                        "fill": "#ddd",
-                        "size": 5
-                    },
-                    {
-                        "id": "B",
-                        "caption": "B",
-                        "type": "default",
-                        "in": false,
-                        "out": true,
-                        "side": "right",
-                        "align": "top",
-                        "fill": "#ddd",
-                        "size": 5
-                    },
-                    {
-                        "id": "C",
-                        "caption": "C",
-                        "type": "default",
-                        "in": false,
-                        "out": true,
-                        "side": "right",
-                        "align": "top",
-                        "fill": "#ddd",
-                    }
-                ]
-            });
+            var nn1 = new fabric.Node(canvas,
+                {
+                    id: '#34',
+                    caption: '#34',
+                    text: 'De quelle couleur sont les tomates ?',
+                    top: 150,
+                    left: 150,
+                    fill: '#eee',
+                    hooks_data: [
+                        {
+                            "id": "in",
+                            "caption": "in",
+                            "type": "default",
+                            "in": true,
+                            "out": false,
+                            "side": "left",
+                            "align": "top",
+                            "fill": "#888",
+                            "size": 6
+                        },
+                        {
+                            "id": "A",
+                            "caption": "A",
+                            "type": "default",
+                            "in": false,
+                            "out": true,
+                            "side": "right",
+                            "align": "top",
+                            "fill": "#ddd",
+                            "size": 5
+                        },
+                        {
+                            "id": "B",
+                            "caption": "B",
+                            "type": "default",
+                            "in": false,
+                            "out": true,
+                            "side": "right",
+                            "align": "top",
+                            "fill": "#ddd",
+                            "size": 5
+                        },
+                        {
+                            "id": "C",
+                            "caption": "C",
+                            "type": "default",
+                            "in": false,
+                            "out": true,
+                            "side": "right",
+                            "align": "top",
+                            "fill": "#ddd",
+                        }
+                    ]
+                });
 
             nn1.add_hook({
-                    "id": "D",
-                    "caption": "D",
-                    "type": "default",
-                    "in": false,
-                    "out": true,
-                    "side": "right",
-                    "align": "top",
-                    "fill": "rgba(250,250,0,0.5)",
+                "id": "D",
+                "caption": "D",
+                "type": "default",
+                "in": false,
+                "out": true,
+                "side": "right",
+                "align": "top",
+                "fill": "rgba(250,250,0,0.5)",
                 }
             );
 
             nn1.add_hook({
-                    "id": "E",
-                    "caption": "E",
-                   "type": "default",
-                    "in": false,
+                "id": "E",
+                "caption": "E",
+                "type": "default",
+                "in": false,
                     "out": true,
                     "side": "right",
                     "align": "top",
@@ -703,13 +704,14 @@
             canvas.add(nn1);
 
 
-            var nn2 = new fabric.Node({
-                id: '#38',
-                caption: '#38',
-                top: 150,
-                left: 250,
-                hooks_data: []
-            });
+            var nn2 = new fabric.Node(canvas,
+                {
+                    id: '#38',
+                    caption: '#38',
+                    top: 150,
+                    left: 250,
+                    hooks_data: []
+                });
 
             nn2.add_hook({
                     "id": "in",
