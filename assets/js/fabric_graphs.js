@@ -321,12 +321,6 @@ class GraphCanvas extends fabric.Canvas {
         this.remove(node)
     };
 
-    add_hook_to_node(node_id, hook_data) {
-
-        let node = this.get_node_by_id(node_id);
-        node.add_hook(hook_data);
-    };
-
     draw_all_links() {
         for (let node_id in this.all_nodes) {
             console.log(this.all_nodes[node_id]);
