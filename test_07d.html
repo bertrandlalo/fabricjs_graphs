@@ -59,7 +59,6 @@
 
     <script id="main">
 
-
         var hook_types = {
             "in": {
                 "id": "in",
@@ -98,7 +97,6 @@
 
             window.addEventListener('resize', resize_canvas);
             resize_canvas();
-
 
             function define_key_listener() {
                 var canvas_holder = canvas.upperCanvasEl;
@@ -307,7 +305,10 @@
         var export_btn = document.getElementById('export-btn');
         export_btn.addEventListener('click', function (ev) {
             // Click on export btn
-            var graph_obj = canvas.get_object(); //graph_api.to_objects();
+            // var yaml = require('yaml-js');
+
+            var graph_obj = canvas.to_object(); //graph_api.to_objects();
+            // var graph_str = YAML.stringify(graph_obj);
             var graph_str = JSON.stringify(graph_obj, null, 2);
             document.getElementById('graph-str').innerText = graph_str;
         });
