@@ -5,12 +5,28 @@
 /**
  * Extends fabric.Canvas
  *
- * This class provides methods for ....
+ * The following methods are provided:
+ *   - handle_keydown
+ *   - endpoint_moved
+ *   - get_nodes, get_edges, get_selected_node
+ *   - to_object
+ *   - make_unique_id
+ *   - draw_all_links
+ *   - clear_floating_endpoint
+ *   - add_node, remove_node
+ *   - add_path, remove_path
  *
- * The following events are provided: .....
+ *
+ * The following events are provided:
+ *   - object:moving
+ *   - mouse:down
+ *   - mouse:move
+ *   - mouse:up
+ *   - object:moved
+ *   - object:selected
+ *   - mouse:wheel
  *
  */
-
 class GraphCanvas extends fabric.Canvas {
     constructor(container_id, options) {
         super(container_id);
@@ -18,8 +34,6 @@ class GraphCanvas extends fabric.Canvas {
         this.floating_endpoint = null;
 
         this.hook_types = options.hook_types;
-
-
         //////////////
         // Custom event listeners
         //////////////
@@ -47,7 +61,6 @@ class GraphCanvas extends fabric.Canvas {
                 this.lastPosY = evt.clientY;
             }
         });
-
 
         // Do drag
         this.on('mouse:move', function (options) {
@@ -81,10 +94,9 @@ class GraphCanvas extends fabric.Canvas {
                 options.target.draw_links();
             } else if (options.target.type === 'end_point') {
                 var end_point = options.target;
-                this.end_point_moved(end_point);
+                this.endpoint_moved(end_point);
             }
         });
-
 
         this.on('object:selected', function (options) {
             console.log('object:selected ' + options.target.type);
@@ -136,7 +148,6 @@ class GraphCanvas extends fabric.Canvas {
 
     };
 
-
     handle_keydown(ev) {
 
         var obj = this.getActiveObject();
@@ -184,8 +195,7 @@ class GraphCanvas extends fabric.Canvas {
         }
     }
 
-
-    end_point_moved(end_point) {
+    endpoint_moved(end_point) {
         // check if connection is done
         let end_point_center = end_point.getCenterPoint();
         let neighbor_found = false;
@@ -243,10 +253,6 @@ class GraphCanvas extends fabric.Canvas {
         return this.all_nodes;
     };
 
-    get_node_by_id(id) {
-        return this.all_nodes[id];
-    };
-
     get_edges() {
 
         let edges = [];
@@ -270,13 +276,12 @@ class GraphCanvas extends fabric.Canvas {
         return edges
     };
 
-
     get_selected_node() {
         var obj = this.getActiveObject();
         return typeof obj !== 'undefined' && obj.type === 'Node' ? obj : null;
     };
 
-    get_object() {
+    to_object() {
         let graph_object = {
                 'nodes': Object.values(this.all_nodes).map(node => node.to_object()),
                 'edges': this.get_edges()
@@ -328,12 +333,6 @@ class GraphCanvas extends fabric.Canvas {
         this.remove(node)
     };
 
-    add_hook_to_node(node_id, hook_data) {
-
-            let node = this.get_node_by_id(node_id);
-            node.add_hook(hook_data);
-    };
-
     draw_all_links() {
         for (let node_id in this.all_nodes) {
             console.log(this.all_nodes[node_id]);
@@ -355,17 +354,12 @@ class GraphCanvas extends fabric.Canvas {
         }
     };
 
-    delete_edge(source_hook, target_hook) {
-
-    };
-
     add_path(pt1, pt2, link, options) {
 
         let graph_path = new fabric.GraphPath(pt1, pt2, link, options);
         this.add(graph_path);
         return graph_path;
     };
-
 
     remove_path(graph_path) {
         this.remove(graph_path)
@@ -387,7 +381,6 @@ class GraphCanvas extends fabric.Canvas {
  * The following events are provided: .....
  *
  */
-
 fabric.Node = fabric.util.createClass(fabric.Group, {
     type: 'Node',
     initialize: function (canvas, options) {
@@ -402,7 +395,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             hooks: [{id: 'in', caption: 'in', io: 'in'}, //todo: remove bullet_options
                 {id: 'out', caption: 'out', io: 'out'}],
             caption: '',
-            orientation: 'horizontal', // else vertical //TODO: should be a canvas property
+            orientation: 'horizontal', // else vertical //todo: should be a canvas property
             // extend options with fabric properties
             fill: 'white',
             originX: 'left',
@@ -712,7 +705,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     mouse_down: function (option) {
         console.log('node_mouse_down' + option.target.caption);
         let canvas = this.canvas;
-        console.log(canvas.get_object());
         let target = option.target;
 
         if (option.subTargets && option.subTargets.length > 0) {
@@ -843,9 +835,12 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 })
 ;
 
-
+////////////////////////////////////////////////////////////////////////////////////////
+// Hook
+////////////////////////////////////////////////////////////////////////////////////////
 class Hook {
-    constructor(id, node, caption = '', type = 'default', io = 'out', links_options = {}, expects = null, provides = null) {
+    constructor(id, node, caption = '', type = 'default', io = 'out',
+                links_options = {}, expects = null, provides = null) {
         /**
          * @param {Object} [options]
          * @param {string} [options.id] - hook id.
@@ -1059,7 +1054,9 @@ class Hook {
     }
 };
 
-
+////////////////////////////////////////////////////////////////////////////////////////
+// GraphPath
+////////////////////////////////////////////////////////////////////////////////////////
 fabric.GraphPath = fabric.util.createClass(fabric.Path, {
     type: 'GraphPath',
     initialize: function (pt1, pt2, link, options) {
@@ -1114,7 +1111,6 @@ fabric.GraphPath = fabric.util.createClass(fabric.Path, {
         });
 
     },
-
 
     make_svg_path: function (pt1, pt2) {
         var v = 0, d = 0, min_d, max_d, xd, yd, svg_path;
