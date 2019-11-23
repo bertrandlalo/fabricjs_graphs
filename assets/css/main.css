@@ -81,4 +81,12 @@
             background-color: #304050;
         }
 
+
+        .overlay-elt {
+            position: fixed;
+            background: #ffe0ff80;
+            border: 1px solid #ffd0d0a0;
+            top: 0;
+            left: 0;
+        }
     

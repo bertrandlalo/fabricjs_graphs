@@ -127,6 +127,13 @@ class GraphCanvas extends fabric.Canvas {
             this.renderAll();
         });
 
+        fabric.Canvas.prototype.getAbsoluteCoords = function(object) {
+            return {
+                left: object.left + this._offset.left,
+                top: object.top + this._offset.top
+            };
+        };
+
     };
 
 
@@ -305,7 +312,7 @@ class GraphCanvas extends fabric.Canvas {
     };
 
     remove_node(node) {
-        // Rempve from all_nodes
+        // Remove from all_nodes
         delete this.all_nodes[node.id];
 
         // Remove links
@@ -323,8 +330,8 @@ class GraphCanvas extends fabric.Canvas {
 
     add_hook_to_node(node_id, hook_data) {
 
-        let node = this.get_node_by_id(node_id);
-        node.add_hook(hook_data);
+            let node = this.get_node_by_id(node_id);
+            node.add_hook(hook_data);
     };
 
     draw_all_links() {
@@ -420,6 +427,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         // create body and caption of the node
         this.create_body();
         this.create_caption();
+        this.setup_html_overlay();
 
         // create hooks
         // this.hooks_data = [];
@@ -459,11 +467,17 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             console.log('deselected');
         });
 
+        this.on('moving', function (options) {
+            console.log('moving');
+            this.position_html_overlay();
+        });
+
         this.on('moved', function (options) {
             // if (this.body.containsPoint(options.e))
             //     console.log('AAAAA');
             // console.log(e.target.top, e.target.left);
             console.log('moved');
+            this.position_html_overlay();
         });
 
         this.on('mousedown', this.mouse_down);
@@ -551,6 +565,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         this.hooks = {in: [], out: []};
         this.hooks_by_id = {};
     },
+
     define_hooks: function (hooks_data) {
         // TODO: hooks_data should rather be a dict with key hook_id
         // this.hooks = hooks;
@@ -561,7 +576,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             this.add_hook(hook_data);
         }
     },
-
 
     add_hook: function (options) {
 
@@ -660,6 +674,41 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     },
 
 
+    setup_html_overlay: function() {
+        if (this.options.html_overlay) {
+            var overlay_elt = document.createElement('div');
+            overlay_elt.classList.add('overlay-elt');
+            overlay_elt.innerHTML = this.options.html_overlay;
+            overlay_elt.id = 'overlay-elt-' + this.options.id;
+            overlay_elt.style.pointerEvents = 'none';
+            this.overlay_elt = overlay_elt;
+            document.body.appendChild(overlay_elt);
+        }
+        else {
+            this.overlay_elt = null;
+        }
+    },
+
+
+    position_html_overlay: function() {
+        if (this.overlay_elt) {
+            var absCoords = this.canvas.getAbsoluteCoords(this);
+
+            var elt = this.overlay_elt;
+
+            var body_client_width = this.body.width - 2 * this.overlay_padding;
+            var body_client_height = this.body.height - 2 * this.overlay_padding;
+
+            elt.style.left = (absCoords.left) + (this.width - body_client_width) * 0.5 + 'px';
+            elt.style.top = (absCoords.top) + (this.height - body_client_height) * 0.5 + 'px';
+            var scale_x = body_client_width  / elt.offsetWidth;
+            var scale_y = body_client_height  / elt.offsetHeight;
+            var scale = Math.min(scale_x, scale_y);
+            elt.style.transformOrigin = 'left top';
+            elt.style.transform = 'scale(__scale__)'.replace('__scale__', scale);
+        }
+    },
+
     mouse_down: function (option) {
         console.log('node_mouse_down' + option.target.caption);
         let canvas = this.canvas;
@@ -757,7 +806,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             left: this.left,
             width: this.body.width,
             height: this.body.height,
-            hooks: hooks_data,
+            hooks: hooks_data
         }
     },
 
@@ -774,13 +823,14 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         this.define_hooks(options.hooks);
 
     },
+
     clone: function () {
-        let json_obj = this.to_object();
-        delete json_obj.id;
-        json_obj.left += 50;
-        json_obj.top += 50;
-        console.log(json_obj);
-        new_node = this.canvas.add_node(json_obj);
+        let obj = this.to_object();
+        delete obj.id;
+        obj.left += 50;
+        obj.top += 50;
+        console.log(obj);
+        new_node = this.canvas.add_node(obj);
         this.canvas.setActiveObject(new_node); //New object becomes the selected object
     }
     ,
@@ -874,23 +924,23 @@ class Hook {
         if (this.side === 'right') {
             this.x = this.node.body.left + this.node.body.width;
             this.y = this.node.body.top + this.node.max_hooks_positions[this.side];
-            this.caption_x = this.x - 12;
+            this.caption_x = this.x - 10;
             this.caption_y = this.y;
         } else if (this.side === 'left') {
             this.x = this.node.body.left;
             this.y = this.node.body.top + this.node.max_hooks_positions[this.side]; // -this.body.height / 2 + this.max_hooks_positions[hook.side];
-            this.caption_x = this.x + 12;
+            this.caption_x = this.x + 10;
             this.caption_y = this.y;
         } else if (this.side === 'top') {
             this.x = this.node.body.left + this.node.max_hooks_positions[this.side];
             this.y = this.node.body.top;
             this.caption_x = this.x;
-            this.caption_y = this.y + 12;
+            this.caption_y = this.y + 10;
         } else if (this.side === 'bottom') {
             this.x = this.node.body.left + this.node.max_hooks_positions[this.side];
             this.y = this.node.body.top + this.node.height; // -this.body.height / 2 + this.max_hooks_positions[hook.side];
             this.caption_x = this.x;
-            this.caption_y = this.y - 12;
+            this.caption_y = this.y - 10;
         } else {
             throw "Bullet side is erroneous: " + this.side;
         }
