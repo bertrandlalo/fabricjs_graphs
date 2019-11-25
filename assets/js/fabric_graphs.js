@@ -35,7 +35,8 @@ class Graph {
     }
 
     generateID() {
-        return this.last_id + 1
+        this.last_id += 1;
+        return this.last_id
     }
 
     listEdgesRefs() {
@@ -638,14 +639,20 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         let this_node = this;
         let parents = [];
 
-        for (let [_, hook] of this_node.hooks.in.entries()) {
-            if (hook.links) {
-                Object.keys(hook.links).forEach(function (link_ref) {
-                    let link = hook.links[link_ref];
-                    parents.push(link.other_hook.node);
-                });
-            }
-        }
+        this.hooks.in.forEach(hook => {
+            hook.edges.forEach(edge => {
+                parents.push(edge.other_hook.node);
+            })
+        });
+
+        // for (let [_, hook] of this.hooks.in.entries()) {
+        //     if (hook.links) {
+        //         Object.keys(hook.links).forEach(function (link_ref) {
+        //             let link = hook.links[link_ref];
+        //             parents.push(link.other_hook.node);
+        //         });
+        //     }
+        // }
         parents = Array.from(new Set(parents)); // get unique
         return parents
 
@@ -670,8 +677,12 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     },
     allowConnection(source_node, target_node) {
         if (this.graph.isAcyclic) {
-            let ancestors = source_node.getAncestors();
-            return !(ancestors.includes(target_node));
+            if (source_node == target_node) {
+                return false
+            } else {
+                let ancestors = source_node.getAncestors();
+                return !(ancestors.includes(target_node));
+            }
         }
         return true
     },
