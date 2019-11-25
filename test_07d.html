@@ -5,6 +5,11 @@
     <title>Fabric Nodes demo</title>
     <script src="assets/js/vendor/fabric.js"></script>
     <script src="assets/js/fabric_graphs.js"></script>
+
+    <script src="assets/js/vendor/JSNetworkX/jsnetworkx.js"></script>
+<!--    <script src="assets/js/vendor/JSNetworkX/src/algorithms/dag.js"></script>-->
+
+
     <link rel="stylesheet" href="assets/css/main.css">
 </head>
 <body>
@@ -119,7 +124,7 @@
 
             // gp1 = canvas.add_path({x: 100, y:100}, {x: 300, y: 200}, {stroke: 'red'});
 
-            var nn1 = canvas.add_node(
+            nn1 = canvas.add_node(
                 {
                     id: '#1',
                     caption: 'Node-1',
@@ -137,7 +142,7 @@
             });
             nn1.add_hook({id: "out2", caption: "out2", io: "out"});
 
-            var nn_princess = canvas.add_node(
+            nn_princess = canvas.add_node(
                 {
                     caption: 'Princess-node',
                     top: 200,
@@ -166,7 +171,7 @@
                     ]
                 });
 
-            var nn_flowers = canvas.add_node({
+            nn_flowers = canvas.add_node({
                 caption: 'Flower-node very very long',
                 top: 200,
                 left: 300,
@@ -307,7 +312,7 @@
             // Click on export btn
             // var yaml = require('yaml-js');
 
-            var graph_obj = canvas.to_object(); //graph_api.to_objects();
+            var graph_obj = canvas.graph.toObject(); //graph_api.to_objects();
             // var graph_str = YAML.stringify(graph_obj);
             var graph_str = JSON.stringify(graph_obj, null, 2);
             document.getElementById('graph-str').innerText = graph_str;
