@@ -1,4 +1,87 @@
 ////////////////////////////////////////////////////////////////////////////////////////
+// Graph
+////////////////////////////////////////////////////////////////////////////////////////
+class Graph {
+    constructor(id, acyclic) {
+        /**
+         * @param {Object} [options]
+         * @param {string} [options.id] - hook id.
+         * @param {fabric.Node} [options.node] - node that this hook belongs to
+         * @param {string} [options.caption] - caption to print in front of the hook
+         * @param {string} [options.io] - 'in' or 'out', defines if this hook is input or output of its node
+
+         */
+        this.last_id = 0;
+        this.id = id; //TODO check if unique
+        this.isAcyclic = acyclic;
+        this.nodes = [];
+    }
+
+    addNode(node) {
+        this.nodes.push(node)
+    };
+
+    removeNode(node) {
+        this.nodes.remove(node)
+        //    todo: delete edges
+    };
+
+    numberOfNodes() {
+        return this.nodes.length;
+    }
+
+    order() {
+        return this.nodes.length;
+    }
+
+    generateID() {
+        return this.last_id + 1
+    }
+
+    listEdgesRefs() {
+
+        let edges_refs = [];
+        this.nodes.forEach(node => {
+            node.hooks.out.forEach(hook => {
+                let output_edges = hook.edges;
+                output_edges.forEach(edge => {
+                    let this_hook = edge.this_hook;
+                    let other_hook = edge.other_hook;
+
+                    let edge_ref = {
+                        source: this_hook.node.id + ':' + this_hook.id,
+                        target: other_hook.node.id + ':' + other_hook.id
+                    };
+                    edges_refs.push(edge_ref)
+                })
+            })
+        });
+        return edges_refs
+
+    };
+
+    toObject() {
+        let graph_object = {
+                'nodes': this.nodes.map(node => node.to_object()),
+                'edges': this.listEdgesRefs()
+            }
+        ;
+        console.log(graph_object);
+        // console.log(this.get_indegrees());
+        // console.log(this.sort_graph());
+        return graph_object;
+    }
+
+    nodesIter(optData = false) {
+        if (optData) {
+            return toIterator(this.nodes);
+        }
+        return this.nodes.keys();
+    }
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // Canvas
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -27,27 +110,34 @@
  *   - mouse:wheel
  *
  */
+
+
 class GraphCanvas extends fabric.Canvas {
     constructor(container_id, options) {
         super(container_id);
-        this.all_nodes = {};
+
+        // this.graph = new jsnx.MultiDiGraph(); // or DiGraph, MultiGraph, MultiDiGraph, etc
+        // this.all_nodes = {};
         this.floating_endpoint = null;
 
         this.hook_types = options.hook_types;
+
+        this.graph = new Graph(container_id, options.acyclic || true);
+
         //////////////
-        // Custom event listeners
+        // Custom event listenersancestors = source_node.getAncestors()
         //////////////
         // this.on('object:moving', this.draw_all_links);
         this.on('object:moving', function (options) {
             console.log('object:moving ' + options.target.type);
             if (options.target.type === 'Node') {
                 // Moving object is a node, redraw all links from this node (should be to AND from)
-                options.target.draw_links();
+                options.target.drawEdges();
             }
             if (options.target.type === 'end_point') {
                 var end_point = options.target;
                 var node = end_point.from_node;
-                node.draw_links();
+                node.drawEdges();
             }
         });
 
@@ -91,7 +181,7 @@ class GraphCanvas extends fabric.Canvas {
             console.log('object:moved ' + options.target.type);
 
             if (options.target.type === 'Node') {
-                options.target.draw_links();
+                options.target.drawEdges();
             } else if (options.target.type === 'end_point') {
                 var end_point = options.target;
                 this.endpoint_moved(end_point);
@@ -195,10 +285,9 @@ class GraphCanvas extends fabric.Canvas {
         let target_found = false;
 
 
-        for (let node_id in this.all_nodes) {
+        for (let node of this.graph.nodes) {
             // Loop over all nodes, looking for one that has a hook that is in
             // the endpoint's neighborhood
-            let node = this.all_nodes[node_id];
 
             for (let h = 0; h < node.hooks.in.length; h++) {
                 // Loop over all input hooks of the current node
@@ -225,13 +314,16 @@ class GraphCanvas extends fabric.Canvas {
                         this.clear_floating_endpoint();
 
                         // check that link  from  source_hook to target_hook does not exist already
-                        link_already_exists = (target_hook.get_ref() in source_hook.links);
+                        // link_already_exists = (target_hook.get_ref() in source_hook.links);
+                        link_already_exists = source_hook.edges.some(edge => edge.other_hook == target_hook);
+
 
                         if (!link_already_exists) {
                             // Create a link from source_hook to target_hook
-                            source_hook.add_link(target_hook);
-                            target_hook.add_link(source_hook);
-                            source_node.draw_links();
+                            source_hook.addEdge(target_hook);
+                            target_hook.addEdge(source_hook);
+
+                            source_node.drawEdges();
                             break;
                         }
                     }
@@ -242,94 +334,163 @@ class GraphCanvas extends fabric.Canvas {
         }
     }
 
-    get_nodes() {
-        return this.all_nodes;
+    get_indegrees() {
+        //  indegree_map = {};
+        let indegrees = [];
+        Object.entries(this.graph.nodes).forEach(
+            ([id, node]) => indegrees.push({id: id, degree: node.get_ancestors().length || 0})//indegree_map[id] = node.descendants.length || 0
+        );
+        console.log(indegrees);
+        return indegrees
     };
 
-    get_edges() {
+    sort_graph() {
+        let sorted_nodes = [];
+        // let indegrees = this.get_indegrees();
+        //     # These nodes have zero indegree and ready to be returned.
+        let indegrees = this.get_indegrees().filter(indegree => indegree.degree > 0)
+        let zero_indegrees = this.get_indegrees().filter(indegree => indegree.degree === 0).map(indegree => indegree.id);
 
-        let edges = [];
-        for (let node_id in this.all_nodes) {
-            let node = this.all_nodes[node_id];
-            let output_hooks = node.hooks.out;
-            for (let i_hook = 0; i_hook < output_hooks.length; i_hook++) {
-                let hook = output_hooks[i_hook];
-                let output_links = hook.links;
-                for (let link_ref in output_links) {
-                    let source_ref = hook.get_ref();
-                    let target_ref = output_links[link_ref].other_hook.get_ref();
-                    let edge = {
-                        source: source_ref[0] + ':' + source_ref[1],
-                        target: target_ref[0] + ':' + target_ref[1]
-                    };
-                    edges.push(edge)
+        while (zero_indegrees.length > 0) {
+            console.log(zero_indegrees)
+
+            let node_id = zero_indegrees.pop();
+            let node = this.graph.nodes[node_id];
+            let descendants = node.get_descendants();
+            descendants.forEach(
+                child => {
+                    console.log(child.caption);
+                    indegrees[child.id] -= 1;
+                    if (indegrees[child.id] == 0) {
+                        zero_indegrees.push(child.id);
+                        console.log(child.caption + 'pushed to zero_indegrees')
+
+                        delete indegrees[child.id]
+                        console.log(child.caption + 'deleted from indegrees')
+                    }
                 }
-            }
+            );
+            sorted_nodes.push(this.graph.nodes[node_id]);
         }
-        return edges
+        return sorted_nodes;
     };
+
+
+    // for (let [node_id, degree] of Object.entries(indegree_map)) {
+    // }
+
+    //for v, d in G.in_degree() if d == 0]
+    //
+    // while zero_indegree:
+    //     node = zero_indegree.pop()
+    //     if node not in G:
+    //         raise RuntimeError("Graph changed during iteration")
+    //     for _, child in G.edges(node):
+    //         try:
+    //             indegree_map[child] -= 1
+    //         except KeyError:
+    //             raise RuntimeError("Graph changed during iteration")
+    //         if indegree_map[child] == 0:
+    //             zero_indegree.append(child)
+    //             del indegree_map[child]
+
+    // };
+
+    // };
+    // get_nodes() {
+    //     return this.all_nodes;
+    // };
+
+    //
 
     get_selected_node() {
         var obj = this.getActiveObject();
         return typeof obj !== 'undefined' && obj.type === 'Node' ? obj : null;
     };
 
-    to_object() {
-        let graph_object = {
-                'nodes': Object.values(this.all_nodes).map(node => node.to_object()),
-                'edges': this.get_edges()
-            }
-        ;
-        console.log(graph_object);
-        return graph_object;
-    };
-
-    make_unique_id() {
-        let i;
-        for (i = 1; '#' + i in this.all_nodes; i++) {
-        }
-        return '#' + i;
-    };
 
     add_node(options) {
         // check if there is an id
-        options.id = options.id || this.make_unique_id();
+        // options.id = options.id || this.make_unique_id();
+        options.id = this.graph.generateID();
         // check if id is indeed unique
-        if (options.id in this.get_nodes()) {
-            throw 'Duplicate node id';
-        }
+        // if (options.id in this.get_nodes()) {
+        //     throw 'Duplicate node id';
+        // }
         // TODO: set top/left in a quite smart way
         // eg. if positions (top and left) are not defined
         // then take the center-weights of nodes centered?
         let node = new fabric.Node(canvas, options);
         // node._graphCanvas = this;
-        this.all_nodes[options.id] = node;
+        this.graph.addNode(node);
+        // this.all_nodes[options.id] = node;
         // Add node to canvas
         this.add(node);
+
+        // JSNETWORKX -------
+        // node.order = this.graph.order();
+        // this.graph.addNode(this.graph.order(), node.to_object());
+        // console.log('Add node to graph --> ' + this.graph.numberOfNodes());
+        // ------------------
         return node;
     };
 
     remove_node(node) {
         // Rempve from all_nodes
-        delete this.all_nodes[node.id];
+        // delete this.all_nodes[node.id];
+        // Remove from graph
+        this.graph.removeNode(node);
 
         // Remove links
         for (let hook_id in node.hooks_by_id) {
             let hook = node.hooks_by_id[hook_id];
-            hook.remove_all_links();
+            hook.removeEdges();
         }
         // Eventually, remove floating endpoint
         if (this.floating_endpoint && this.floating_endpoint.from_node == node) {
             this.clear_floating_endpoint()
         }
         // Remove from canvas
-        this.remove(node)
+        this.remove(node);
+
+        this.graph.removeNode()
+        // JSNETWORKX -------
+        // remove from graph
+        // this.graph.removeNode(node.order);
+        // console.log(this.graph.numberOfNodes())
+        // ------------------
     };
 
-    draw_all_links() {
-        for (let node_id in this.all_nodes) {
-            console.log(this.all_nodes[node_id]);
-            this.all_nodes[node_id].draw_links();
+    drawFloatingPath() {
+
+        let pt1, pt2;
+
+        // draw link to floating endpoint ONLY if floating endpoint is attached to this node
+        // if (canvas.floating_endpoint && canvas.floating_endpoint.from_node == this) {
+        let floating_endpoint = this.floating_endpoint;
+        let source_hook = floating_endpoint.from_hook;
+        let source_node = floating_endpoint.from_node;
+        pt1 = source_hook.get_center();
+        pt2 = floating_endpoint.getCenterPoint();
+        // clean existing paths
+        // this.clean_hook_paths(hook);
+        // draw new path
+        if (floating_endpoint.path) {
+            this.remove(floating_endpoint.path);
+        }
+        console.log(source_hook.links_options);
+        // floating_endpoint.path = this_node.draw_path(pt1, pt2, source_hook.links_options);
+        floating_endpoint.path = this.add_path(pt1, pt2);
+        floating_endpoint.bringToFront();
+        // }
+    };
+
+    drawEdges() {
+        console.log('drawEdges! ')
+        // for (let node of this.graph.nodesIter(true)) {
+        for (let node of this.graph.nodes) {
+            // this.graph.nodes[node_id].draw_links();
+            node.drawEdges();
         }
         if (this.floating_endpoint) {
             this.floating_endpoint.bringToFront();
@@ -358,9 +519,7 @@ class GraphCanvas extends fabric.Canvas {
         this.remove(graph_path)
     };
 
-
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Node
@@ -403,6 +562,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
 
         };
         this.canvas = canvas;
+        this.graph = canvas.graph;
         this.options = Object.assign(default_options, options);
 
         this.id = this.options.id;
@@ -472,6 +632,48 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             hook.to_node = to_node;
         };
 
+    },
+    getParents() {
+
+        let this_node = this;
+        let parents = [];
+
+        for (let [_, hook] of this_node.hooks.in.entries()) {
+            if (hook.links) {
+                Object.keys(hook.links).forEach(function (link_ref) {
+                    let link = hook.links[link_ref];
+                    parents.push(link.other_hook.node);
+                });
+            }
+        }
+        parents = Array.from(new Set(parents)); // get unique
+        return parents
+
+    },
+    getAncestors() {
+
+        let ancestors = [];
+
+        let children = [this];
+
+        while (children.length > 0) {
+            let child = children.shift();
+            let parents = child.getParents();
+            parents.forEach(parent => {
+                ancestors.push(parent);
+                children.push(parent)
+            });
+        }
+        ancestors = Array.from(new Set(ancestors)); // get unique
+        return ancestors
+
+    },
+    allowConnection(source_node, target_node) {
+        if (this.graph.isAcyclic) {
+            let ancestors = source_node.getAncestors();
+            return !(ancestors.includes(target_node));
+        }
+        return true
     },
 
     create_body: function () {
@@ -583,7 +785,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             options.provides);
         // let hook_data = {id: id, caption: hook.caption, type: hook.type, io: hook.io} // TODO: move that to a method 'to_object' in Hook class
         // this.hooks_data.push(hook_data);
-        this.   hooks_by_id[hook.id] = hook;
+        this.hooks_by_id[hook.id] = hook;
         this.hooks[options.io].push(hook);
         hook.create_bullet(options.bullet_options);
     },
@@ -593,65 +795,49 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             throw "Node has no hook with id " + hook_id;
         }
         return this.hooks_by_id[hook_id];
-    },
+    }
+    ,
+    // todo: remove those and usagee
 
 
-    draw_links: function () {
+    drawEdges() {
+
         // Draw all links from hooks of this node
         let this_node = this;
         var canvas = this_node.canvas;
 
-        var pt1, pt2;
-
-        // draw link to floating endpoint ONLY if floating endpoint is attached to this node
-        if (this.canvas.floating_endpoint && this.canvas.floating_endpoint.from_node == this_node) {
-            let floating_endpoint = this.canvas.floating_endpoint;
-            let source_hook = floating_endpoint.from_hook;
-            let source_node = floating_endpoint.from_node;
-            pt1 = source_hook.get_center();
-            pt2 = floating_endpoint.getCenterPoint();
-            // clean existing paths
-            // this.clean_hook_paths(hook);
-            // draw new path
-            if (floating_endpoint.path) {
-                this.canvas.remove(floating_endpoint.path);
-            }
-            console.log(source_hook.links_options);
-            // floating_endpoint.path = this_node.draw_path(pt1, pt2, source_hook.links_options);
-            floating_endpoint.path = canvas.add_path(pt1, pt2);
-            floating_endpoint.bringToFront();
+        // Draw floating point
+        if (canvas.floating_endpoint && canvas.floating_endpoint.from_node == this_node) {
+            this.canvas.drawFloatingPath()
         }
-        // Draw edges
+
+        var pt1, pt2;
 
         for (var hook_id in this_node.hooks_by_id) {
             var hook = this_node.hooks_by_id[hook_id];
             pt1 = hook.get_center();
 
-            for (var hook_ref in hook.links) {       // hook.links is array with hook_ref as keys
+            hook.edges.forEach(edge => {       // hook.links is array with hook_ref as keys
 
-                var link = hook.links[hook_ref];
-                pt2 = link.other_hook.get_center();
+                pt2 = edge.other_hook.get_center();
 
                 if (hook.io === 'in') {
                     // hook is of type 'in': find path via other hook
-                    var other_hook = link.other_hook;
-                    var link_from_other_hook = other_hook.links[hook.get_ref()];
-                    // canvas.remove(link_from_other_hook.path);
-                    // link_from_other_hook.path = this_node.draw_path(pt2, pt1, link.other_hook.links_options);
-                    canvas.remove_path(link_from_other_hook.path);
-                    link_from_other_hook.path = canvas.add_path(pt2, pt1, link);
+                    let other_hook = edge.other_hook;
+                    let edge_from_other_hook = other_hook.edges.find(edge => edge.other_hook == hook);
+                    canvas.remove_path(edge_from_other_hook.path);
+                    edge_from_other_hook.path = canvas.add_path(pt2, pt1, edge);
                 } else {
                     // hook is of type 'out': it holds the path
-                    if (link.path) {
-                        canvas.remove_path(link.path);
+                    if (edge.path) {
+                        canvas.remove_path(edge.path);
                     }
                     // link.path = this_node.draw_path(pt1, pt2, hook.links_options);
-                    link.path = canvas.add_path(pt1, pt2, link);
+                    edge.path = canvas.add_path(pt1, pt2, edge);
                 }
-            }
+            })
         }
     },
-
 
     mouse_down: function (option) {
         console.log('node_mouse_down' + option.target.caption);
@@ -715,14 +901,11 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                             from_node: target,
                             hoverCursor: 'default',
 
-                            // stroke: 'red',
-                            // strokeWidth: 2
                         });
 
                         this.canvas.add(end_point);
                         this.canvas.floating_endpoint = end_point;
-                        // hook.to_node = end_point;
-                        this.canvas.draw_all_links();
+                        this.canvas.drawEdges();
 
                     }
 
@@ -804,11 +987,12 @@ class Hook {
         this.caption = caption;
         this.type = type;
         this.io = io;
+        this.edges = [];
         this.links = {};
         this.links_options = links_options;
-        console.log(this.links_options);
         this.provides = provides;
         this.expects = expects;
+        this.graph = node.graph
     }
 
     neighborhood(point, radius = 10) {
@@ -819,19 +1003,25 @@ class Hook {
     }
 
     allow_connection(hook) {
+
+        if (this.io === 'in') {
+            return true
+        }
+
+        // at this point, we know we're dealing with output connections
+
+        // check if node can be connected
+        if (!this.node.allowConnection(this.node, hook.node)) {
+            console.log('CYCLIC CONNECTION FORBIDDEN !  ');
+            return false
+        }
+
+        // if expects is null, it accepts all types
         if (!hook.expects) {
-            // if expects is null, it accepts all types
             return true
         }
-        // We only deal with output connections
-        if (this.io === 'out') {
-            //  If this is an output hook, check whether `hook` expects type
-            //  than what this hook provides
-            return hook.expects.includes(this.provides)
-        } else {
-            // If this is an input hook
-            return true
-        }
+        // finally, check whether `hook` expects type  than what this hook provides
+        return hook.expects.includes(this.provides);
 
     }
 
@@ -933,51 +1123,80 @@ class Hook {
     }
 
     remove_from_canvas() {
-        this.remove_all_links();
+        this.removeEdges();
         this.node.remove(this.text);
         this.node.remove(this.bullet);
-
     }
 
     get_ref() {
         return [this.node.id, this.id];
     }
 
-    add_link(other_hook) {
-        var other_hook_ref = other_hook.get_ref();
-        if (other_hook_ref in this.links) {
-            console.log("Warning: link already exists to target " + other_hook_ref);
-            this.remove_link(other_hook);
+    addEdge(other_hook) {
+
+        // var other_hook_ref = other_hook.get_ref();
+
+        const edge_already_exists = this.edges.some(edge => edge.other_hook == other_hook);
+
+        if (edge_already_exists) {
+            console.log("Warning: link already exists to target " + other_hook.get_ref());
+            this.removeEdge(other_hook); // todo: update instead?
         }
-        this.links[other_hook_ref] = {
+
+        // if (other_hook_ref in this.links) {
+        //     console.log("Warning: link already exists to target " + other_hook_ref);
+        //     this.remove_link(other_hook);
+        // }
+
+        // this.links[other_hook_ref] = {
+        //     this_hook: this,
+        //     other_hook: other_hook,
+        //     path: null
+        // };
+
+        this.edges.push({
             this_hook: this,
             other_hook: other_hook,
             path: null
-        };
+        })
     }
 
-    remove_link(other_hook) {
-        var other_hook_ref = other_hook.get_ref();
-        if (other_hook_ref in this.links) {
-            var link = this.links[other_hook_ref];
-            if (link.path) {
-                this.node.canvas.remove(link.path);
-            }
-            delete this.links[other_hook_ref];
+    removeEdge(other_hook) {
+
+        let edge = this.edges.filter(function (edge) {
+            return edge.other_hook == other_hook;
+        });
+
+        if (edge.path) {
+            this.node.canvas.remove(edge.path);
         }
+        this.edges.remove(edge)
+        // var other_hook_ref = other_hook.get_ref();
+        // if (other_hook_ref in this.links) {
+        //     var link = this.links[other_hook_ref];
+        //     if (link.path) {
+        //         this.node.canvas.remove(link.path);
+        //     }
+        //     delete this.links[other_hook_ref];
+        //
+        // }
+        // todo: remove from ancestors/descendents
     }
 
-    remove_all_links() {
-        for (const [key, link] of Object.entries(this.links)) {
-            if (this.io === 'in') {
-                // Remove its output links by removing their reference in the next
-                link.other_hook.remove_link(this)
-            } else {
-                // Remove its input links by removing their reference in the previous
-                link.other_hook.remove_link(this)
-
-            }
-        }
+    removeEdges() {
+        // let io = this.io;
+        this.edges.forEach(edge => {
+            edge.other_hook.removeEdge()
+        })
+        // for (const [key, link] of Object.entries(this.links)) {
+        //     if (this.io === 'in') {
+        //         // Remove its output links by removing their reference in the next
+        //         link.other_hook.remove_link(this)
+        //     } else {
+        //         // Remove its input links by removing their reference in the previous
+        //         link.other_hook.remove_link(this)
+        //     }
+        // }
 
     }
 
