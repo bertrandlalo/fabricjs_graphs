@@ -79,12 +79,59 @@
             }
         };
 
-        var graph_canvas_options = {
-            hook_types: hook_types
-        };
 
         // canvas from object
-        var canvas = new GraphCanvas('node-canvas', graph_canvas_options);
+        let graph_canvas_json = '{\n' +
+            '  "container_id": "node-canvas",\n' +
+            '  "graph_id": 1,\n' +
+            '  "nodes": [\n' +
+            '    {\n' +
+            '      "id": "1",\n' +
+            '      "caption": "Node-1",\n' +
+            '      "hooks": [\n' +
+            '        {\n' +
+            '          "id": "in_1",\n' +
+            '          "caption": "in",\n' +
+            '          "type": "in",\n' +
+            '          "io": "in"\n' +
+            '        },\n' +
+            '        {\n' +
+            '          "id": "out_1",\n' +
+            '          "caption": "out",\n' +
+            '          "type": "out",\n' +
+            '          "io": "out"\n' +
+            '        }\n' +
+            '      ]\n' +
+            '    },\n' +
+            '    {\n' +
+            '      "id": 2,\n' +
+            '      "caption": "Node-2",\n' +
+            '      "hooks": [\n' +
+            '        {\n' +
+            '          "id": "in",\n' +
+            '          "caption": "in",\n' +
+            '          "type": "default",\n' +
+            '          "io": "in"\n' +
+            '        },\n' +
+            '        {\n' +
+            '          "id": "out",\n' +
+            '          "caption": "out",\n' +
+            '          "type": "default",\n' +
+            '          "io": "out"\n' +
+            '        }\n' +
+            '      ]\n' +
+            '    }\n' +
+            '  ],\n' +
+            '  "edges": [\n' +
+            '    {\n' +
+            '      "source": "1:out_1",\n' +
+            '      "target": "2:in"\n' +
+            '    }\n' +
+            '  ]\n' +
+            '}';
+
+        var canvas = GraphCanvas.fromObject(JSON.parse(graph_canvas_json));
+
         (function (canvas) {
             fabric.Object.prototype.transparentCorners = false;
 
@@ -121,25 +168,25 @@
 
 
             // gp1 = canvas.add_path({x: 100, y:100}, {x: 300, y: 200}, {stroke: 'red'});
-            nn0 = new fabric.Node({
-                id: '#1',
-                caption: 'Node-1',
-                hooks: [{
-                    type: 'in',
-                    caption: 'in',
-                    io: 'in'
-                },
-                    {
-                        type: "out",
-                        caption: "out",
-                        io: "out",
-
-                    }]
-            });
-            nn0.toCanvas(canvas, {
-                top: 150,
-                left: 250
-            })
+            // nn0 = new fabric.Node({
+            //     id: '#1',
+            //     caption: 'Node-1',
+            //     hooks: [{
+            //         type: 'in',
+            //         caption: 'in',
+            //         io: 'in'
+            //     },
+            //         {
+            //             type: "out",
+            //             caption: "out",
+            //             io: "out",
+            //
+            //         }]
+            // });
+            // nn0.toCanvas(canvas, {
+            //     top: 150,
+            //     left: 250
+            // })
 
 
             // nn1 = canvas.addNode(
