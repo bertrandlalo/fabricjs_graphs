@@ -47,6 +47,9 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         this.createBody();
         this.createCaption();
 
+        if (this.canvas) {
+            this.toCanvas(this.canvas)
+        }
         // create hooks
         // this.hooks_data = [];
         this.hooks = {in: [], out: []};
@@ -316,7 +319,7 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     getHooks() {
         return this.hooks.in.concat(this.hooks.out)
     },
-    getHook(hook_id){
+    getHook(hook_id) {
         return this.getHooks().find(hook => hook.id === hook_id);
     },
 
