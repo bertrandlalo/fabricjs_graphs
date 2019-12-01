@@ -60,7 +60,34 @@
 
     <script id="main">
 
-        var canvas = new GraphCanvas('node-canvas');
+        var hook_types = {
+            "in": {
+                "id": "in",
+                "caption": "in",
+                "io": "in",
+                "color": "black",
+                "expects": "flow"
+            },
+            "answer_true": {
+                "caption": "",
+                "io": "out",
+                "color": "green",
+                "provides": "flow"
+            },
+            "answer_false": {
+                "caption": "",
+                "io": "out",
+                "color": "red",
+                "provides": "flow"
+            }
+        };
+
+        var graph_canvas_options = {
+            hook_types: hook_types
+        };
+
+
+        var canvas = new GraphCanvas('node-canvas', graph_canvas_options);
 
         (function (canvas) {
             fabric.Object.prototype.transparentCorners = false;
@@ -101,10 +128,30 @@
             // gp1 = canvas.add_path({x: 100, y:100}, {x: 300, y: 200}, {stroke: 'red'});
 
             var question_obj = {
+                id: '332',
+                question_text: 'Tomates',
+                answers: [
+                    {
+                        answer_text: 'Red',
+                        correct: true
+                    },
+                    {
+                        answer_text: 'Blue',
+                        correct: false
+                    },
+                    {
+                        answer_text: 'Yellow',
+                        correct: false
+                    },
+                    {
+                        answer_text: 'Black',
+                        correct: false
+                    }
+                ]
 
-            }
+            };
 
-            var q01 = new fabric.QuestionNode();
+            var q01 = new fabric.QuestionNode(canvas, question_obj);
 
             canvas.add(q01);
 
@@ -122,12 +169,12 @@
                 }]
             });
 
-            canvas.add_hook_to_node('#1', {
+            nn1.add_hook( {
                 id: "out1",
                 caption: "out1 very long",
                 io: "out",
             });
-            canvas.add_hook_to_node('#1', {id: "out2", caption: "out2", io: "out"});
+            nn1.add_hook(  {id: "out2", caption: "out2", io: "out"});
 
 
             nn_princess = canvas.add_node({
