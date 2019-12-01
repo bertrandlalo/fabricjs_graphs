@@ -4,7 +4,11 @@
     <meta charset="utf-8">
     <title>Fabric Nodes demo</title>
     <script src="assets/js/vendor/fabric.js"></script>
-    <script src="assets/js/fabric_graphs.js"></script>
+    <!--    <script src="assets/js/fabric_graphs.js"></script>-->
+    <script src="assets/js/graph.js"></script>
+    <script src="assets/js/hook.js"></script>
+    <script src="assets/js/node.js"></script>
+    <script src="assets/js/path.js"></script>
     <script src="assets/js/fabric_questions.js"></script>
     <link rel="stylesheet" href="assets/css/main.css">
 </head>
@@ -109,9 +113,9 @@
             function define_key_listener() {
                 var canvas_holder = canvas.upperCanvasEl;
                 canvas_holder.tabIndex = 1000;
-                canvas_holder.addEventListener('keydown', function(ev) {
-                   console.log('canvas /keydown');
-                   canvas.handle_keydown(ev);
+                canvas_holder.addEventListener('keydown', function (ev) {
+                    console.log('canvas /keydown');
+                    canvas.handle_keydown(ev);
                 });
             }
 
@@ -127,7 +131,7 @@
 
             // gp1 = canvas.add_path({x: 100, y:100}, {x: 300, y: 200}, {stroke: 'red'});
 
-            var question_obj = {
+            let question_obj = {
                 id: '332',
                 question_text: 'Tomates',
                 answers: [
@@ -151,12 +155,11 @@
 
             };
 
-            var q01 = new fabric.QuestionNode(canvas, question_obj);
+            let q01 = new fabric.QuestionNode(canvas, question_obj);
 
-            canvas.add(q01);
+            // canvas.add(q01);
 
-
-            nn1 = canvas.add_node({
+            nn1 = canvas.newNode({
                 id: '#1',
                 caption: 'Node-1',
                 top: 150,
@@ -169,15 +172,15 @@
                 }]
             });
 
-            nn1.add_hook( {
+            nn1.addHook({
                 id: "out1",
                 caption: "out1 very long",
                 io: "out",
             });
-            nn1.add_hook(  {id: "out2", caption: "out2", io: "out"});
+            nn1.addHook({id: "out2", caption: "out2", io: "out"});
 
 
-            nn_princess = canvas.add_node({
+            nn_princess = canvas.newNode({
                 caption: 'Princess-node',
                 top: 200,
                 left: 800,
@@ -193,7 +196,7 @@
                 }
                 ]
             });
-            nn_flowers = canvas.add_node({
+            nn_flowers = canvas.newNode({
                 caption: 'Flower-node very very long',
                 top: 200,
                 left: 300,
@@ -234,7 +237,7 @@
             nn1JOBJECT.caption = nn1JOBJECT.caption + 'COPY';
             nn1JOBJECT.id = nn1JOBJECT.id + 'COPY';
             console.log(nn1JOBJECT);
-            nn1COPY = canvas.add_node(nn1JOBJECT);
+            nn1COPY = canvas.newNode(nn1JOBJECT);
 
         })(canvas);
 
@@ -279,30 +282,26 @@
                     node.dirty = true;
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
-                }
-                else if (element.getAttribute('name') === 'caption') {
+                } else if (element.getAttribute('name') === 'caption') {
                     // node.setFill(element.value);
                     node.caption_object.set('text', element.value);
                     node.caption = element.value;
                     node.dirty = true;
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
-                }
-                else if (element.getAttribute('name') === 'width') {
+                } else if (element.getAttribute('name') === 'width') {
                     console.log(element.value);
                     node.body.set('width', parseInt(element.value));
                     node.addWithUpdate();
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
-                }
-                else if (element.getAttribute('name') === 'height') {
+                } else if (element.getAttribute('name') === 'height') {
                     console.log(element.value);
                     node.body.set('height', parseInt(element.value));
                     node.addWithUpdate();
                     node.canvas.requestRenderAll();
                     node.canvas.renderTop();
-                }
-                else if (element.getAttribute('name') === 'json') {
+                } else if (element.getAttribute('name') === 'json') {
                     console.log(element.value);
                     node.update(element.value);
                     node.canvas.requestRenderAll();
@@ -333,7 +332,7 @@
         var export_btn = document.getElementById('export-btn');
         export_btn.addEventListener('click', function (ev) {
             // Click on export btn
-            var graph_obj = canvas.get_object(); //graph_api.to_objects();
+            var graph_obj = canvas.graph.toObject(); //graph_api.to_objects();
             var graph_str = JSON.stringify(graph_obj, null, 2);
             document.getElementById('graph-str').innerText = graph_str;
         });
