@@ -1,5 +1,3 @@
-
-
 fabric.QuestionNode = fabric.util.createClass(fabric.Node, {
     node_type: 'QuestionNode',
     initialize: function (canvas, question, options) {
@@ -10,13 +8,12 @@ fabric.QuestionNode = fabric.util.createClass(fabric.Node, {
          * @param options
          */
 
-        let default_options = {
-        };
+        let default_options = {};
 
         this.canvas = canvas;
+
         this.options = Object.assign(default_options, options);
         this.question = question;
-
 
         let node_options = {
             width: 150,
@@ -33,9 +30,9 @@ fabric.QuestionNode = fabric.util.createClass(fabric.Node, {
 
         var overlay = '<p>' + question.question_text + '</p>';
 
-        for (let a=0; a < question.answers.length; a++) {
-            var answer = question.answers[a];
-            var letter = String.fromCharCode(65 + a) ;
+        for (let a = 0; a < question.answers.length; a++) {
+            let answer = question.answers[a];
+            let letter = String.fromCharCode(65 + a);
             overlay += '<p><b>' + letter + '</b> ' + answer.answer_text + '</p>';
             node_options.hooks.push({
                 "id": letter,
@@ -48,7 +45,9 @@ fabric.QuestionNode = fabric.util.createClass(fabric.Node, {
 
 
         // calls the parent's constructor
-        this.callSuper('initialize', this.canvas, node_options);
+        this.callSuper('initialize', node_options);
+        // to canvas
+        this.callSuper('toCanvas', this.canvas);
 
         this.question_obj = new fabric.Text(question.question_text,
             {
@@ -62,7 +61,7 @@ fabric.QuestionNode = fabric.util.createClass(fabric.Node, {
                 width: this.body.width - 10,
                 fill: 'grey',
                 stroke: null
-        });
+            });
 
 
         // var question_dom_elt = document.createElement('div');
@@ -93,13 +92,11 @@ fabric.QuestionNode = fabric.util.createClass(fabric.Node, {
 
     },
 
-    to_object: function () {
-        var object = this.callSuper('to_object');
+    toObject: function () {
+        let object = this.callSuper('toObject');
         object.question = this.question;
         return object;
     },
-
-
 
 
 });
