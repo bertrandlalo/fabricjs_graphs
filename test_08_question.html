@@ -115,7 +115,7 @@
                 canvas_holder.tabIndex = 1000;
                 canvas_holder.addEventListener('keydown', function (ev) {
                     console.log('canvas /keydown');
-                    canvas.handle_keydown(ev);
+                    canvas._keydownHandler(ev);
                 });
             }
 
@@ -326,7 +326,7 @@
         create_btn.addEventListener('click', function (ev) {
             // Click on create btn
             // Create new node width default parameters
-            canvas.add_node({})
+            canvas.newNode({})
 
         });
         var export_btn = document.getElementById('export-btn');
@@ -341,9 +341,9 @@
         delete_btn.addEventListener('click', function (ev) {
             // Click on delete btn
 
-            let node = canvas.get_selected_node();
+            let node = canvas.getSelectedNode();
             if (node) {
-                canvas.remove_node(node);
+                canvas.removeNode(node);
             }
         });
 

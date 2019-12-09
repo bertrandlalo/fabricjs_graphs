@@ -3,7 +3,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 class Hook {
     constructor(id, node, caption = '', type = 'default', io = 'out',
-                links_options = {}, expects = null, provides = null) {
+                links_options = {}, expects = null, provides = null,
+                bullet_options = {}) {
         /**
          * @param {Object} [options]
          * @param {string} [options.id] - hook id.
@@ -23,7 +24,8 @@ class Hook {
         this.links_options = links_options;
         this.provides = provides;
         this.expects = expects;
-        this.graph = node.graph
+        this.graph = node.graph;
+        this.createBullet(bullet_options);
     }
 
     generateID(io) {
@@ -37,7 +39,7 @@ class Hook {
             && Math.abs(center.y - point.y) < radius);
     }
 
-    allowConnection(hook) {
+    allowConnection(otherHook) {
 
         if (this.io === 'in') {
             return true
@@ -46,17 +48,17 @@ class Hook {
         // at this point, we know we're dealing with output connections
 
         // check if node can be connected
-        if (!this.node.allowConnection(this.node, hook.node)) {
+        if (!this.node.allowConnection(this.node, otherHook.node)) {
             console.log('CYCLIC CONNECTION FORBIDDEN !  ');
             return false
         }
 
         // if expects is null, it accepts all types
-        if (!hook.expects) {
+        if (!otherHook.expects) {
             return true
         }
         // finally, check whether `hook` expects type  than what this hook provides
-        return hook.expects.includes(this.provides);
+        return otherHook.expects.includes(this.provides);
 
     }
 
@@ -182,6 +184,7 @@ class Hook {
                 other_hook: other_hook,
                 path: null
             })
+
         )
     }
 
@@ -189,12 +192,12 @@ class Hook {
 
         let edge = this.edges.filter(function (edge) {
             return edge.other_hook === other_hook;
-        });
+        })[0];
 
         if (edge.path) {
             this.node.canvas.remove(edge.path);
         }
-        this.edges.remove(edge)
+        this.edges = this.edges.filter(el => el != edge )
         // todo: remove from ancestors/descendents
     }
 
@@ -245,6 +248,7 @@ class Edge {
         this.other_hook = options.other_hook;
         this.path = options.path;
     }
+
     getRef() {
         return {
             source: this_hook.node.id + ':' + this_hook.id,

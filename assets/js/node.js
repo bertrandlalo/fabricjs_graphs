@@ -308,13 +308,15 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
             options.io,
             options.links_options,
             options.expects,
-            options.provides);
+            options.provides,
+            options.bullet_options
+        );
 
         // let hook_data = {id: id, caption: hook.caption, type: hook.type, io: hook.io} // TODO: move that to a method 'toObject' in Hook class
         // this.hooks_data.push(hook_data);
         this.hooks_by_id[hook.id] = hook;
         this.hooks[options.io].push(hook);
-        hook.createBullet(options.bullet_options);
+        // hook.createBullet(options.bullet_options);
     },
     getHooks() {
         return this.hooks.in.concat(this.hooks.out)
@@ -387,19 +389,26 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
                     // Ctrl-Click on bullet:  Delete all links
                     console.log('CONTROL CLICK ON BULLET');
                     // Ctrl-Click on bullet means remove all links
-                    for (let hook_ref in hook.links) {       // hook.links is array with hook_ref as keys
-                        let link = hook.links[hook_ref];
-                        let other_hook = link.other_hook;
-                        if (link.path) {
-                            // link is outbound: it holds the path
-                            canvas.remove(link.path);
-                        } else {
-                            // link must be inbound: the other end of the link holds the path
-                            canvas.remove(other_hook.links[hook.getRef()].path);
-                        }
-                        delete hook.links[hook_ref];
-                        delete other_hook.links[hook.getRef()];
-                    }
+                    // if (hook.io === 'out'){
+                    hook.edges.forEach(edge => hook.removeEdge(edge.other_hook));
+                    // }
+                    // else {
+                    //
+                    // }
+
+                    // for (let hook_ref in hook.links) {       // hook.links is array with hook_ref as keys
+                    //     let link = hook.links[hook_ref];
+                    //     let other_hook = link.other_hook;
+                    //     if (link.path) {
+                    //         // link is outbound: it holds the path
+                    //         canvas.remove(link.path);
+                    //     } else {
+                    //         // link must be inbound: the other end of the link holds the path
+                    //         canvas.remove(other_hook.links[hook.getRef()].path);
+                    //     }
+                    //     delete hook.links[hook_ref];
+                    //     delete other_hook.links[hook.getRef()];
+                    // }
 
                 } else {
                     // Click without Ctrl key pressed:  create floating endpoint
@@ -491,12 +500,13 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
     ,
 
     clone() {
-        let json_obj = this.toObject();
+        let json_obj = this.toObject(includeCanvasProperties = true);
+        // let json_obj =  this.callSuper('toObject');
         delete json_obj.id;
         json_obj.left += 50;
         json_obj.top += 50;
         console.log(json_obj);
-        let new_node = this.canvas.AddNode(json_obj);
+        let new_node = this.canvas.newNode(json_obj);
         this.canvas.setActiveObject(new_node); //New object becomes the selected object
     }
     ,
@@ -505,6 +515,6 @@ fabric.Node = fabric.util.createClass(fabric.Group, {
         this.body.set('fill', fill);
     }
 
-})
+});
 
 

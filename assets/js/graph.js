@@ -28,7 +28,9 @@ class Graph {
     };
 
     removeNode(node) {
-        this.nodes.remove(node)
+        // this.nodes.remove(node)
+
+        this.nodes = this.nodes.filter(el => el != node);
         //    todo: delete edges
     };
 
@@ -349,13 +351,10 @@ class GraphCanvas extends fabric.Canvas {
                     console.log('END POINT IN' + node.caption + ' NEIGHBORHOOD');
 
                     neighbor_found = true;
-                    let target_node = node;
                     let source_node = end_point.from_node;
                     let source_hook = end_point.from_hook;
 
                     if (source_hook.allowConnection(target_hook)) {
-                        let target_found = true;
-                        let link_already_exists = false;
 
                         // Check if hook types are compatible
 
@@ -363,7 +362,7 @@ class GraphCanvas extends fabric.Canvas {
 
                         // check that link  from  source_hook to target_hook does not exist already
                         // link_already_exists = (target_hook.get_ref() in source_hook.links);
-                        link_already_exists = source_hook.edges.some(edge => edge.other_hook == target_hook);
+                        let link_already_exists = source_hook.edges.some(edge => edge.other_hook === target_hook);
 
 
                         if (!link_already_exists) {
