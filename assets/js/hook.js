@@ -172,7 +172,7 @@ class Hook {
     addEdge(other_hook) {
 
 
-        const edge_already_exists = this.edges.some(edge => edge.other_hook === other_hook);
+        let edge_already_exists = this.edges.some(edge => edge.other_hook === other_hook);
 
         if (edge_already_exists) {
             console.log("Warning: link already exists to target " + other_hook.getRef());
@@ -184,7 +184,6 @@ class Hook {
                 other_hook: other_hook,
                 path: null
             })
-
         )
     }
 
@@ -197,7 +196,7 @@ class Hook {
         if (edge.path) {
             this.node.canvas.remove(edge.path);
         }
-        this.edges = this.edges.filter(el => el != edge )
+        this.edges = this.edges.filter(el => el != edge)
         // todo: remove from ancestors/descendents
     }
 
