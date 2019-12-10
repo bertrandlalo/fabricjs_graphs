@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Fabric Nodes demo</title>
+    <script src="assets/js/vendor/fabric.js"></script>
+    <!--    <script src="assets/js/fabric_graphs.js"></script>-->
+    <script src="assets/js/graph.js"></script>
+    <script src="assets/js/hook.js"></script>
+    <script src="assets/js/node.js"></script>
+    <script src="assets/js/path.js"></script>
+    <script src="assets/js/fabric_questions.js"></script>
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+
+
+<div id="bd-wrapper">
+    <h2>Fabric Nodes Tests</h2>
+
+    <div class="flex-row">
+        <div class="canvas-holder">
+            <canvas id="node-canvas" width="400" height="400"></canvas>
+        </div>
+        <div class="properties">
+            <div class="title">Properties</div>
+            <div class="form-group">
+                <label>Node Id</label>
+                <input type="text" name="node_id">
+            </div>
+            <div class="form-group">
+                <label>Caption</label>
+                <input type="text" name="caption">
+            </div>
+            <div class="form-group">
+                <label>Fill</label>
+                <input type="text" name="fill">
+            </div>
+            <div class="form-group dimension">
+                <label>Dimension (w x h)</label>
+                <input type="text" name="width">
+                <input type="text" name="height">
+            </div>
+            <div class="form-group">
+                <label>JSON</label>
+                <textarea name="json"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="btn-toolbar">
+        <a id="create-btn" class="btn btn-primary" href="#">Create Node</a>
+        <a id="clone-btn" class="btn btn-primary" href="#">Duplicate</a>
+
+        <a id="delete-btn" class="btn btn-primary" href="#">Delete</a>
+        <a id="export-btn" class="btn btn-primary" href="#">Export Graph</a>
+
+    </div>
+
+    <pre id="graph-str"></pre>
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <script id="main">
+
+        var hook_types = {
+            "in": {
+                "id": "in",
+                "caption": "in",
+                "io": "in",
+                "color": "black",
+                "expects": "flow"
+            },
+            "answer_true": {
+                "caption": "",
+                "io": "out",
+                "color": "green",
+                "provides": "flow"
+            },
+            "answer_false": {
+                "caption": "",
+                "io": "out",
+                "color": "red",
+                "provides": "flow"
+            }
+        };
+
+        var graph_canvas_options = {
+            hook_types: hook_types
+        };
+
+
+        var canvas = new GraphCanvas('node-canvas', graph_canvas_options);
+
+        (function (canvas) {
+            fabric.Object.prototype.transparentCorners = false;
+
+            canvas.selection = false;
+
+
+            function resize_canvas(ev) {
+                var canvas_holder = canvas.upperCanvasEl.closest('.canvas-holder');
+
+                canvas.setWidth(canvas_holder.clientWidth);
+                canvas.setHeight(canvas_holder.clientHeight);
+            }
+
+            window.addEventListener('resize', resize_canvas);
+            resize_canvas();
+
+
+            function define_key_listener() {
+                var canvas_holder = canvas.upperCanvasEl;
+                canvas_holder.tabIndex = 1000;
+                canvas_holder.addEventListener('keydown', function (ev) {
+                    console.log('canvas /keydown');
+                    canvas._keydownHandler(ev);
+                });
+            }
+
+            define_key_listener();
+
+            /* Take from here: https://stackoverflow.com/questions/24384804/fabric-js-subclassing-fabric-group-error-cannot-read-property-async-of-und
+            * Synchronous loaded object
+            */
+            // fabric.Node.fromJSON = function (object, callback) {
+            //     return new fabric.Node(object);
+            // };
+
+
+            // gp1 = canvas.add_path({x: 100, y:100}, {x: 300, y: 200}, {stroke: 'red'});
+
+            let question_obj = {
+                id: '332',
+                question_text: 'Tomates',
+                answers: [
+                    {
+                        answer_text: 'Red',
+                        correct: true
+                    },
+                    {
+                        answer_text: 'Blue',
+                        correct: false
+                    },
+                    {
+                        answer_text: 'Yellow',
+                        correct: false
+                    },
+                    {
+                        answer_text: 'Black',
+                        correct: false
+                    }
+                ]
+
+            };
+
+            let q01 = new fabric.QuestionNode(canvas, question_obj);
+
+            // canvas.add(q01);
+
+            nn1 = canvas.newNode({
+                id: '#1',
+                caption: 'Node-1',
+                top: 150,
+                left: 250,
+                hooks: [{
+                    "id": "in",
+                    "caption": "in",
+                    "type": "default",
+                    "io": "in",
+                }]
+            });
+
+            nn1.addHook({
+                id: "out1",
+                caption: "out1 very long",
+                io: "out",
+            });
+            nn1.addHook({id: "out2", caption: "out2", io: "out"});
+
+
+            nn_princess = canvas.newNode({
+                caption: 'Princess-node',
+                top: 200,
+                left: 800,
+                width: 200,
+                height: 200,
+                hooks: [{
+                    "id": "in",
+                    "caption": "expects-pink",
+                    "type": "default",
+                    "expects": ['pink'],
+                    "io": "in",
+                    "bullet_options": {fill: "pink"},
+                }
+                ]
+            });
+            nn_flowers = canvas.newNode({
+                caption: 'Flower-node very very long',
+                top: 200,
+                left: 300,
+                hooks: [
+                    {
+                        "id": "out-pink",
+                        "caption": "rose",
+                        "type": "default",
+                        "provides": "pink",
+                        "links_options": {stroke: 'pink'},
+                        "io": "out",
+                        "bullet_options": {fill: "pink"}
+                    },
+                    {
+                        "id": "out-red",
+                        "caption": "coquelicot",
+                        "type": "default",
+                        "provides": "red",
+                        "links_options": {stroke: 'red'},
+                        "io": "out",
+                        "bullet_options": {fill: "red"}
+                    },
+                    {
+                        "id": "out-yellow",
+                        "caption": "begonia",
+                        "type": "default",
+                        "provides": "yellow",
+                        "links_options": {stroke: 'yellow'},
+                        "io": "out",
+                        "bullet_options": {fill: "yellow"}
+                    },
+                ]
+            });
+
+            nn1JOBJECT = nn1.toObject();
+            console.log('nn1 to Object: ', nn1JOBJECT);
+            // update id
+            nn1JOBJECT.caption = nn1JOBJECT.caption + 'COPY';
+            nn1JOBJECT.id = nn1JOBJECT.id + 'COPY';
+            console.log(nn1JOBJECT);
+            nn1COPY = canvas.newNode(nn1JOBJECT);
+
+        })(canvas);
+
+        document.addEventListener('nodes.selected', function (ev) {
+            console.log('nodes.selected' + ev.detail);
+            if (ev.detail) {
+                var node_properties = ev.detail;
+                var find_prop_divs = document.getElementsByClassName('properties');
+                if (find_prop_divs.length) {
+                    var prop_div = find_prop_divs[0];
+                    prop_div._node = node_properties.node;
+                    var input_id = prop_div.querySelector('input[name=node_id]');
+                    var input_caption = prop_div.querySelector('input[name=caption]');
+                    var input_fill = prop_div.querySelector('input[name=fill]');
+                    var input_width = prop_div.querySelector('input[name=width]');
+                    var input_height = prop_div.querySelector('input[name=height]');
+                    var ta_json = prop_div.querySelector('textarea[name=json]');
+
+                    input_id.value = node_properties.id;
+                    input_caption.value = node_properties.caption;
+                    input_fill.value = node_properties.fill;
+                    input_width.value = node_properties.width;
+                    input_height.value = node_properties.height;
+                    ta_json.value = node_properties.json;
+                }
+            }
+        });
+
+        var find_prop_divs = document.getElementsByClassName('properties');
+        if (find_prop_divs.length) {
+            var prop_div = find_prop_divs[0];
+            prop_div.addEventListener('change', function (ev) {
+
+                var node = prop_div._node;
+                console.log('node: ' + node);
+                var element = ev.target;
+                console.log(element.value);
+
+                if (element.getAttribute('name') === 'fill') {
+                    // node.setFill(element.value);
+                    node.body.set('fill', element.value);
+                    node.dirty = true;
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                } else if (element.getAttribute('name') === 'caption') {
+                    // node.setFill(element.value);
+                    node.caption_object.set('text', element.value);
+                    node.caption = element.value;
+                    node.dirty = true;
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                } else if (element.getAttribute('name') === 'width') {
+                    console.log(element.value);
+                    node.body.set('width', parseInt(element.value));
+                    node.addWithUpdate();
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                } else if (element.getAttribute('name') === 'height') {
+                    console.log(element.value);
+                    node.body.set('height', parseInt(element.value));
+                    node.addWithUpdate();
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                } else if (element.getAttribute('name') === 'json') {
+                    console.log(element.value);
+                    node.update(element.value);
+                    node.canvas.requestRenderAll();
+                    node.canvas.renderTop();
+                }
+
+            });
+        }
+
+        var clone_btn = document.getElementById('clone-btn');
+        clone_btn.addEventListener('click', function (ev) {
+            // Click on clone btn
+            // Find the div with class 'properties', because we have attached _node to it.
+            var find_prop_divs = document.getElementsByClassName('properties');
+            if (find_prop_divs.length) {
+                var prop_div = find_prop_divs[0];
+                var node = prop_div._node;
+                node.clone();
+            }
+        });
+        var create_btn = document.getElementById('create-btn');
+        create_btn.addEventListener('click', function (ev) {
+            // Click on create btn
+            // Create new node width default parameters
+            canvas.newNode({})
+
+        });
+        var export_btn = document.getElementById('export-btn');
+        export_btn.addEventListener('click', function (ev) {
+            // Click on export btn
+            var graph_obj = canvas.graph.toObject(); //graph_api.to_objects();
+            var graph_str = JSON.stringify(graph_obj, null, 2);
+            document.getElementById('graph-str').innerText = graph_str;
+        });
+
+        var delete_btn = document.getElementById('delete-btn');
+        delete_btn.addEventListener('click', function (ev) {
+            // Click on delete btn
+
+            let node = canvas.getSelectedNode();
+            if (node) {
+                canvas.removeNode(node);
+            }
+        });
+
+        window.addEventListener('keydown', function (ev) {
+            // console.log(ev.key);
+            // if (ev.key == 'd' && ev.ctrlKey) {
+            //     ev.preventDefault();
+            //     // var graph_element = document.getElementById('node-canvas');
+            //     // var canvas = graph_element.graphApi;
+            //     var node = canvas.get_selected_node();
+            //     if (node) {
+            //         node.clone();
+            //     }
+            // }
+            // if (ev.key === "Delete") {
+            //     ev.preventDefault();
+            //     // var graph_element = document.getElementById('node-canvas');
+            //     // var canvas = graph_element.graphApi;
+            //     let node = canvas.get_selected_node();
+            //     if (node) {
+            //         canvas.remove_node(node);
+            //     }
+            // }
+
+        });
+
+    </script>
+
+</div>
+
+
+<script>
+    (function () {
+        fabric.util.addListener(fabric.window, 'load', function () {
+            var canvas = this.__canvas || this.canvas,
+                canvases = this.__canvases || this.canvases;
+
+            canvas && canvas.calcOffset && canvas.calcOffset();
+
+            if (canvases && canvases.length) {
+                for (var i = 0, len = canvases.length; i < len; i++) {
+                    canvases[i].calcOffset();
+                }
+            }
+        });
+    })();
+</script>
+
+
+</body>
+</html>
