@@ -1,5 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // Hook
+// Hooks represent the inputs and the outputs of a node.
+// To define a connection between two nodes, one must specify its source
+// (ie. one output port of a node) and its target (ie. one input port of a node).
+// Hook io can be i if the port in an entry/input to the node or o
+// if the port is an output/exit from the node.
+
 ////////////////////////////////////////////////////////////////////////////////////////
 class Hook {
     constructor(id, node, caption = '', type = 'default', io = 'out',
